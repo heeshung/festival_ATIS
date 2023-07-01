@@ -106,14 +106,15 @@ async def on_message(message):
 		#hourdiff=timediff.total_seconds()/3600
 		#currentatisindex = int((hourdiff) % 26)
 		atiscompare=[]
-		atiscompare.append(atisoutput[begin+2:end] + "\n\nREMARKS \n")
+		atiscompare.append(atisoutput[begin+2:end] + "\n\nREMARKS\n")
 		timeremaintext=[]
 
 		#iterate through each stage
 		for stageindex in range(0,len(setdata),3):
 			settimeindex = stageindex+1
 			artistindex = stageindex+2
-			atiscompose = setdata[stageindex] + ": "
+			#add stage name
+			atiscompose = "\n**" + setdata[stageindex] + "**: "
 			timeremaincompose=""
 			for idx, x in reversed(list(enumerate(setdata[settimeindex]))):
 				if (currentdatetime >= setdata[settimeindex][idx]):
@@ -128,10 +129,10 @@ async def on_message(message):
 							timesuffix = str(int(timeremain/60)) + " hr " + str(int(timeremain%60)) + " min"
 						else:
 							timesuffix = str(timeremain) + " min"
-						timeremaincompose=" (" + nextartist + " in " + timesuffix + ")\n"
+						timeremaincompose=" (" + nextartist + " in " + timesuffix + ")"
 					#if current artist is last
 					else:
-						timeremaincompose="\n"
+						timeremaincompose=""
 					break
 				#if current artist is before first
 				nextartist = setdata[artistindex][0]
@@ -142,7 +143,7 @@ async def on_message(message):
 					timesuffix = str(int(timeremain/60)) + " hr " + str(int(timeremain%60)) + " min"
 				else:
 					timesuffix = str(timeremain) + " min"
-				timeremaincompose=" (" + nextartist + " in " + timesuffix + ")\n"
+				timeremaincompose=" (" + nextartist + " in " + timesuffix + ")"
 				currentartist="STGE CLSD"
 
 			timeremaintext.append(timeremaincompose)
@@ -184,11 +185,9 @@ async def on_message(message):
 
 		await message.channel.send(combined)
 
-
+	#TAF
 	if message.content.lower().startswith('taf'):
-		
 
-		
 		if 'z' in message.content.lower():
 			zulureq = True
 		else:
@@ -211,7 +210,7 @@ async def on_message(message):
 		for stageindex in range(0,len(setdata),3):
 			settimeindex = stageindex+1
 			artistindex = stageindex+2
-			combined += "\n" + setdata[stageindex] + ": FM"
+			combined += "\n**" + setdata[stageindex] + "**: FM"
 			timeremaintext = ""
 			for idx, x in reversed(list(enumerate(setdata[settimeindex]))):
 				#if current time is past time of first set
@@ -223,7 +222,7 @@ async def on_message(message):
 						if (zulureq == True):
 							combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
 						else:
-							combined += (nextsettime+timedelta(hours=utcoffset)).strftime("%d%H%M**L** **(%a %b%d %H%ML)** ").upper() + nextartist
+							combined += (nextsettime+timedelta(hours=utcoffset)).strftime(" %a %b%d %H%ML ").upper() + nextartist
 						break
 					else:
 						nextartist=setdata[artistindex][idx+1]
@@ -231,13 +230,16 @@ async def on_message(message):
 						if (zulureq == True):
 							combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
 						else:
-							combined += (nextsettime+timedelta(hours=utcoffset)).strftime("%d%H%M**L** **(%a %b%d %H%ML)** ").upper() + nextartist
+							combined += (nextsettime+timedelta(hours=utcoffset)).strftime(" %a %b%d %H%ML ").upper() + nextartist
 						break
 				#if current time is before first set
 				elif (currentdatetime < setdata[settimeindex][0]):
 					nextartist = setdata[artistindex][0]
 					nextsettime = setdata[settimeindex][0]
-					combined += nextsettime.strftime("%d%H%M") + zululocalsuffix + " " + nextartist
+					if (zulureq == True):
+						combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
+					else:
+						combined += (nextsettime+timedelta(hours=utcoffset)).strftime(" %a %b%d %H%ML ").upper() + nextartist
 					break
 				else:
 					continue
