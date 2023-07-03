@@ -2,8 +2,6 @@ import discord
 import os
 import requests
 import time
-#import threading
-#import asyncio
 from discord.ext import tasks
 from datetime import timezone, timedelta, datetime
 
@@ -33,17 +31,17 @@ utcoffset = int(schedule_parsed[1])
 #get icao airport code
 icao = schedule_parsed[2]
 
-#get number of stages
-numstages=int(schedule_parsed[3])
+#get number of stages based on number of colons
+numstages=(len(''.join(schedule_parsed[3:]).split(":"))-1)
 
 setdata=[]
 
 #parse schedule data
-for x in range(4,4+numstages):
-	#y is iterator for times/artists part of data
-	y = x+numstages
-	setdata.append(schedule_parsed[x])
-	sets_parsed = schedule_parsed[y].split(",")
+for x in range(3,numstages+3):
+	#separate stage name and set data
+	stagedata = schedule_parsed[x].split(":")
+	setdata.append(stagedata[0])
+	sets_parsed = stagedata[1].split(",")
 	times_parsed = []
 	artists_parsed = []
 	for z in range(0,len(sets_parsed),2):
@@ -68,8 +66,6 @@ alertinterval=15
 
 client=discord.Client()
 
-#def alerter():
-#@client.event
 @tasks.loop(seconds=10)
 async def alerter():
 	global markedsets
