@@ -7,12 +7,11 @@ import time
 from discord.ext import tasks
 from datetime import timezone, timedelta, datetime
 
-#prompt for current year
-#currentyearmonth = input("Enter last two digits of year and month: ")
-currentyearmonth = "23"
 
 atisletters=["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
-atisepoch=datetime.utcnow()
+#atisepoch=datetime.utcnow()
+
+currentyear = datetime.utcnow().strftime("%y")
 
 #read client token
 tokenfile = open ("token","r")
@@ -49,7 +48,7 @@ for x in range(4,4+numstages):
 	artists_parsed = []
 	for z in range(0,len(sets_parsed),2):
 		#convert string into datetime
-		formattedtime = datetime.strptime(currentyearmonth+sets_parsed[z],'%y%m%d%H%M')
+		formattedtime = datetime.strptime(currentyear+sets_parsed[z],'%y%m%d%H%M')
 		#add UTC offset
 		formattedtime -= timedelta(hours=utcoffset)
 		times_parsed.append(formattedtime)
@@ -65,7 +64,7 @@ currentatisindex=0
 
 markedsets=[]
 
-alertinterval=10
+alertinterval=15
 
 client=discord.Client()
 
@@ -73,14 +72,21 @@ client=discord.Client()
 #@client.event
 @tasks.loop(seconds=10)
 async def alerter():
+	global markedsets
 
 	#get current time
 	currentdatetime=datetime.utcnow()
+	markedsetscopy=[]
 
-	for x in range(0,len(markedsets),5):
-		if ((markedsets[x]-currentdatetime).total_seconds()/60 < alertinterval and (markedsets[x]-currentdatetime).total_seconds() > 0 and (markedsets[x+4] == False)):
-			await client.get_channel(746263960646451241).send("ATTENTION ALL AIRCRAFT: " + markedsets[x+2] + " BEGINS IN **" + str(int((markedsets[x]-currentdatetime).total_seconds()/60)) + " MINUTES** AT " + markedsets[x+1] + " (marked by " + markedsets[x+3].mention + ").")
-			markedsets[x+4]=True
+	#iterate through alert list
+	for x in range(0,len(markedsets),4):
+		if ((markedsets[x]-currentdatetime).total_seconds()/60 < alertinterval and (markedsets[x]-currentdatetime).total_seconds() > 0):
+			await client.get_channel(746263960646451241).send("ATTENTION ALL AIRCRAFT: " + markedsets[x+2] + " BEGINS IN **" + str(round((markedsets[x]-currentdatetime).total_seconds()/60)) + " MINUTES** AT " + markedsets[x+1] + " (alert set by " + markedsets[x+3].mention + ").")
+		else:
+			markedsetscopy.extend(markedsets[x:x+4])
+	markedsets = markedsetscopy[:]
+
+
 alerter.start()
 
 #@client.event
@@ -89,65 +95,96 @@ alerter.start()
 
 @client.event
 async def on_message(message):
+	global markedsets
+	global alertinterval
+	global additionalrmks
+	global setdata
+	global currentatisindex
+	global currentatistext
+
+	#ignore if message was written by bot
 	if message.author == client.user:
 		return
 
 	if message.content.lower().startswith('hello'):
 		await message.channel.send('Hello!')
 
-	if message.content.lower().startswith('additional'):
-		global additionalrmks
-		additionalrmks=(message.content)[11:]
+	if message.content.lower().startswith('alertint'):
+		try:
+			alertinterval = int((message.content)[9:])
+		except:
+			await message.channel.send('Error setting alert interval.')
+		else:
+			await message.channel.send(('Set alert interval to ') + str(alertinterval) + (' minutes.'))
+
+	if message.content.lower().startswith('alertlist'):
+		listcompose = ""
+		if (len(markedsets)==0):
+			await message.channel.send('No alerts set.')
+		else:
+			listcompose+='ALERT LIST:'
+			for x in range(0,len(markedsets),4):
+				listcompose+="\n" + markedsets[x+2] + "'s " + markedsets[x+1] + " set at " + (markedsets[x]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " (" + str(markedsets[x+3]) + ")"
+			await message.channel.send(listcompose)
+
+	if message.content.lower().startswith('remark'):
+		additionalrmks=(message.content)[7:]
 
 	if message.content.lower().startswith('add'):
-		global setdata
-		global markedsets
-
 		#get current time
 		currentdatetime=datetime.utcnow()
 
 		searchterm = (message.content)[4:].lower()
 		matchfound = False
 
-		#iterate through all sets and mark priority sets
-		for stageindex in range(0,len(setdata),3):
-			settimeindex = stageindex+1
-			artistindex = stageindex+2
-			for x in range(0,len(setdata[artistindex])):
-				if (searchterm in setdata[artistindex][x].lower() and (setdata[settimeindex][x] - currentdatetime).total_seconds() > 0):
-					markedsets.append(setdata[settimeindex][x])
-					markedsets.append(setdata[stageindex])
-					markedsets.append(setdata[artistindex][x])
-					markedsets.append(message.author)
-					#set alerted status to false
-					markedsets.append(False)
-					#set match found to true
-					matchfound = True
-					await message.channel.send(message.author.mention + " added " + setdata[artistindex][x] + "'s " + setdata[stageindex] + " set at " + (setdata[settimeindex][x]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " to the alert list. :white_check_mark:")
-				
-		#if no match is found
-		if (matchfound == False):
-			await message.channel.send("Couldn't find any artists with '"+(message.content)[4:]+"' in their name.")
+		#check for empty search
+		if (len(searchterm)==0):
+			await message.channel.send("Search term is empty.")
+
+		else:
+			#iterate through all sets and mark priority sets
+			for stageindex in range(0,len(setdata),3):
+				settimeindex = stageindex+1
+				artistindex = stageindex+2
+				for x in range(0,len(setdata[artistindex])):
+					if (searchterm in setdata[artistindex][x].lower() and (setdata[settimeindex][x] - currentdatetime).total_seconds()/60 > alertinterval):
+						#check if set is already added
+						alreadyadded = False
+						for y in range(0,len(markedsets),4):
+							if (markedsets[y+2]==setdata[artistindex][x] and markedsets[y]==setdata[settimeindex][x] and markedsets[y+1]==setdata[stageindex]):
+								alreadyadded = True
+						#skip if set is already in list
+						if (alreadyadded == True):
+							continue
+						markedsets.append(setdata[settimeindex][x])
+						markedsets.append(setdata[stageindex])
+						markedsets.append(setdata[artistindex][x])
+						markedsets.append(message.author)
+						#set match found to true
+						matchfound = True
+						await message.channel.send(message.author.mention + " added " + setdata[artistindex][x] + "'s " + setdata[stageindex] + " set at " + (setdata[settimeindex][x]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " to the alert list. :white_check_mark:")
+
+			#if no match is found
+			if (matchfound == False):
+				await message.channel.send("Couldn't find any artists with '"+(message.content)[4:]+"' in their name with future sets.")
 
 	if message.content.lower().startswith('remove'):
 		matchfound = False
-		print ("remove")
+		markedsetscopy = []
 		searchterm = (message.content)[7:].lower()
-		for x in range(0,len(markedsets),5):
-			print (searchterm)
-			print (markedsets[x+2])
+		for x in range(0,len(markedsets),4):
 			if (searchterm in markedsets[x+2].lower()):
 				matchfound = True
 				await message.channel.send(message.author.mention + " removed " + markedsets[x+2] + "'s " + markedsets[x+1] + " set at " + (markedsets[x]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " from the alert list. :x:")
-				del markedsets[x:x+5]
+			else:
+				#add undeleted sets back in
+				markedsetscopy.extend(markedsets[x:x+4])
+		markedsets=markedsetscopy[:]
 		if (matchfound == False):
-			await message.channel.send("Couldn't find any artists with '"+(message.content)[7:]+"' in their name.")
+			await message.channel.send("Couldn't find any artists with '"+(message.content)[7:]+"' in their name in the alert list.")
 
 
 	if message.content.lower().startswith('atis'):
-		global currentatisindex
-		global currentatistext
-		
 
 		if 'z' in message.content.lower():
 			zulureq = True
