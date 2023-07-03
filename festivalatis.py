@@ -7,9 +7,10 @@ from datetime import timezone, timedelta, datetime
 
 
 atisletters=["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
-#atisepoch=datetime.utcnow()
+atisepoch=datetime.utcnow()
 
 currentyear = datetime.utcnow().strftime("%y")
+currentmonth = datetime.utcnow().strftime("%m")
 
 #read client token
 tokenfile = open ("token","r")
@@ -18,6 +19,8 @@ tokenfile.close()
 
 #read schedule
 schedule = open("schedule","r")
+
+#remove newlines
 schedule_data = schedule.read()
 schedule_parsed = schedule_data.split("\n")
 schedule.close()
@@ -32,21 +35,21 @@ utcoffset = int(schedule_parsed[1])
 icao = schedule_parsed[2]
 
 #get number of stages based on number of colons
-numstages=(len(''.join(schedule_parsed[3:]).split(":"))-1)
+numstages=(len(''.join(schedule_parsed[3:]).split("^"))-1)
 
 setdata=[]
 
 #parse schedule data
 for x in range(3,numstages+3):
 	#separate stage name and set data
-	stagedata = schedule_parsed[x].split(":")
+	stagedata = schedule_parsed[x].split("^")
 	setdata.append(stagedata[0])
 	sets_parsed = stagedata[1].split(",")
 	times_parsed = []
 	artists_parsed = []
 	for z in range(0,len(sets_parsed),2):
 		#convert string into datetime
-		formattedtime = datetime.strptime(currentyear+sets_parsed[z],'%y%m%d%H%M')
+		formattedtime = datetime.strptime(currentyear+currentmonth+sets_parsed[z],'%y%m%d%H%M')
 		#add UTC offset
 		formattedtime -= timedelta(hours=utcoffset)
 		times_parsed.append(formattedtime)
@@ -85,9 +88,9 @@ async def alerter():
 
 alerter.start()
 
-#@client.event
-#async def on_ready():
-#	await client.get_channel(746263960646451241).send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
+@client.event
+async def on_ready():
+	await client.get_channel(746263960646451241).send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
 
 @client.event
 async def on_message(message):
@@ -104,6 +107,11 @@ async def on_message(message):
 
 	if message.content.lower().startswith('hello'):
 		await message.channel.send('Hello!')
+
+	if (message.content.lower()==('help')):
+		await message.channel.send("## festival_ATIS Commands\n>>> **help**: replies with this help message\n**atis**: replies with the area ATIS, current artists on stage, and time remaining in sets\n**taf**: replies with the area TAF, and upcoming sets and \
+times by stage\n**add <searchterm>**: adds artists that match search term into alert list\n**remove <searchterm>**: removes artists that match seach term from alert list\n**alertlist**: replies with full alert list\n**alertint <minutes>**: changes the alert \
+interval to the specified number of minutes\n**remarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF")
 
 	if message.content.lower().startswith('alertint'):
 		try:
