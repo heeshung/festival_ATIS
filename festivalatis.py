@@ -130,7 +130,7 @@ async def alertlist(ctx: SlashContext):
 
 @slash_command(name="remarks", description="Change the additional remarks")
 @slash_option(name="remarks_text", description="Remarks text", required=True, opt_type=OptionType.STRING)
-async def remarks(ctx: SlashContext, remark_text: str):
+async def remarks(ctx: SlashContext, remarks_text: str):
 	global additionalrmks
 	await ctx.send(f"Remarks set.")
 	additionalrmks=(remarks_text)
