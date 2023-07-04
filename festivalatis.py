@@ -2,6 +2,7 @@ import discord
 import os
 import requests
 import time
+import math
 from discord.ext import tasks
 from datetime import timezone, timedelta, datetime
 
@@ -80,7 +81,7 @@ async def alerter():
 	#iterate through alert list
 	for x in range(0,len(markedsets),4):
 		if ((markedsets[x]-currentdatetime).total_seconds()/60 < alertinterval and (markedsets[x]-currentdatetime).total_seconds() > 0):
-			await client.get_channel(746263960646451241).send("ATTENTION ALL AIRCRAFT: " + markedsets[x+2] + " BEGINS IN **" + str(round((markedsets[x]-currentdatetime).total_seconds()/60)) + " MINUTES** AT " + markedsets[x+1] + " (alert set by " + markedsets[x+3].mention + ").")
+			await client.get_channel(746263960646451241).send("ATTENTION ALL AIRCRAFT: " + markedsets[x+2] + " BEGINS IN **" + str(math.ceil((markedsets[x]-currentdatetime).total_seconds()/60)) + " MINUTES** AT " + markedsets[x+1] + " (alert set by " + markedsets[x+3].mention + ").")
 		else:
 			markedsetscopy.extend(markedsets[x:x+4])
 	markedsets = markedsetscopy[:]
@@ -88,9 +89,9 @@ async def alerter():
 
 alerter.start()
 
-@client.event
-async def on_ready():
-	await client.get_channel(746263960646451241).send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
+#@client.event
+#async def on_ready():
+#	await client.get_channel(746263960646451241).send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
 
 @client.event
 async def on_message(message):
@@ -109,7 +110,7 @@ async def on_message(message):
 		await message.channel.send('Hello!')
 
 	if (message.content.lower()==('help')):
-		await message.channel.send("## festival_ATIS Commands\n>>> **help**: replies with this help message\n**atis**: replies with the area ATIS, current artists on stage, and time remaining in sets\n**taf**: replies with the area TAF, and upcoming sets and \
+		await message.channel.send("## Commands\n>>> **help**: replies with this help message\n**atis**: replies with the area ATIS, current artists on stage, and time remaining in sets\n**taf**: replies with the area TAF, and upcoming sets and \
 times by stage\n**add <searchterm>**: adds artists that match search term into alert list\n**remove <searchterm>**: removes artists that match seach term from alert list\n**alertlist**: replies with full alert list\n**alertint <minutes>**: changes the alert \
 interval to the specified number of minutes\n**remarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF")
 
