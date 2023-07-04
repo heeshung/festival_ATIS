@@ -1,10 +1,16 @@
-import discord
 import os
 import requests
 import time
-from discord.ext import tasks
+import math
+from interactions import slash_command, slash_option, SlashContext, Client, Intents, listen, OptionType, Task, IntervalTrigger
+from interactions.api.events import Component
+from interactions.ext import prefixed_commands
 from datetime import timezone, timedelta, datetime
 
+
+#bot setup
+bot = Client(intents=Intents.DEFAULT, sync_interactions=True, asyncio_debug=True)
+prefixed_commands.setup(bot)
 
 atisletters=["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
 atisepoch=datetime.utcnow()
@@ -67,9 +73,7 @@ markedsets=[]
 
 alertinterval=15
 
-client=discord.Client()
-
-@tasks.loop(seconds=10)
+@Task.create(IntervalTrigger(seconds=10))
 async def alerter():
 	global markedsets
 
@@ -80,47 +84,50 @@ async def alerter():
 	#iterate through alert list
 	for x in range(0,len(markedsets),4):
 		if ((markedsets[x]-currentdatetime).total_seconds()/60 < alertinterval and (markedsets[x]-currentdatetime).total_seconds() > 0):
-			await client.get_channel(746263960646451241).send("ATTENTION ALL AIRCRAFT: " + markedsets[x+2] + " BEGINS IN **" + str(round((markedsets[x]-currentdatetime).total_seconds()/60)) + " MINUTES** AT " + markedsets[x+1] + " (alert set by " + markedsets[x+3].mention + ").")
+			await client.get_channel(746263960646451241).send("ATTENTION ALL AIRCRAFT: " + markedsets[x+2] + " BEGINS IN **" + str(math.ceil((markedsets[x]-currentdatetime).total_seconds()/60)) + " MINUTES** AT " + markedsets[x+1] + " (alert set by " + markedsets[x+3].mention + ").")
 		else:
 			markedsetscopy.extend(markedsets[x:x+4])
 	markedsets = markedsetscopy[:]
+	print ("alerter")
+
+#alerter.start()
+
+#@listen()
+#async def on_ready(ctx: SlashContext):
+#	await ctx.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
 
 
-alerter.start()
+print ("Here")
 
-@client.event
-async def on_ready():
-	await client.get_channel(746263960646451241).send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
+@slash_command(name="maincommand", description="main command")
+async def hello(ctx: SlashContext):
+	await ctx.send("Hello World")
 
-@client.event
-async def on_message(message):
-	global markedsets
-	global alertinterval
-	global additionalrmks
-	global setdata
-	global currentatisindex
-	global currentatistext
+@slash_command(name="help", description="Shows the help menu")
+async def help(ctx: SlashContext):
+	#global markedsets
+	#global alertinterval
+	#global additionalrmks
+	#global setdata
+	#global currentatisindex
+	#global currentatistext
 
-	#ignore if message was written by bot
-	if message.author == client.user:
-		return
-
-	if message.content.lower().startswith('hello'):
-		await message.channel.send('Hello!')
-
-	if (message.content.lower()==('help')):
-		await message.channel.send("## festival_ATIS Commands\n>>> **help**: replies with this help message\n**atis**: replies with the area ATIS, current artists on stage, and time remaining in sets\n**taf**: replies with the area TAF, and upcoming sets and \
+	await ctx.send("## Commands\n>>> **help**: replies with this help message\n**atis**: replies with the area ATIS, current artists on stage, and time remaining in sets\n**taf**: replies with the area TAF, and upcoming sets and \
 times by stage\n**add <searchterm>**: adds artists that match search term into alert list\n**remove <searchterm>**: removes artists that match seach term from alert list\n**alertlist**: replies with full alert list\n**alertint <minutes>**: changes the alert \
 interval to the specified number of minutes\n**remarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF")
 
-	if message.content.lower().startswith('alertint'):
-		try:
-			alertinterval = int((message.content)[9:])
-		except:
-			await message.channel.send('Error setting alert interval.')
-		else:
-			await message.channel.send(('Set alert interval to ') + str(alertinterval) + (' minutes.'))
-
+@slash_command(name="alertint", description="Sets the alert interval in minutes")
+@slash_option(name="minutes",description="Alert interval in minutes",required=True,opt_type=OptionType.INTEGER)
+async def alertint(ctx: SlashContext, minutes: int):
+	global alertinterval
+	try:
+		await ctx.send(f"Alert interval: {minutes}")
+		alertinterval = minutes
+	except:
+		await ctx.send('Error setting alert interval.')
+	else:
+		await ctx.send(('Set alert interval to ') + str(alertinterval) + (' minutes.'))
+"""
 	if message.content.lower().startswith('alertlist'):
 		listcompose = ""
 		if (len(markedsets)==0):
@@ -353,3 +360,5 @@ interval to the specified number of minutes\n**remarks <remarks>**: adds additio
 		await message.channel.send(combined)
 
 client.run(token)
+"""
+bot.start(token)
