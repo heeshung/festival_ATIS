@@ -12,6 +12,7 @@ Features
 - Modify schedules on-the-fly
 - Automatic set sorting
 - Official METAR/TAF output from NOAA
+- Individualized additional remarks
 
 
 ## Schedule Format

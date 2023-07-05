@@ -62,7 +62,7 @@ for x in range(3,numstages+3):
 	setdata.append(setdatabystage)
 
 
-additionalrmks=""
+additionalrmks=[]
 
 currentatistext=[]
 currentatisindex=0
@@ -104,18 +104,21 @@ async def alerter():
 async def on_ready():
 	global channel
 	channel = await bot.fetch_channel(channel_id=746263960646451241)
-	await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
+	#await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
 	await schedulesorter()
 	alerter.start()
 
 @slash_command(name="help", description="Show the help menu with all available commands")
 async def help(ctx: SlashContext):
-	await ctx.send("## Commands\n>>> **/addalert <artist> <alert_interval>**: adds artists that match search term into alert list with respective alert interval (default is 15 minutes)\n \
+	await ctx.send("## Commands\n>>>  \
+**/addalert <artist> <alert_interval>**: adds artists that match search term into alert list with respective alert interval (default is 15 minutes)\n \
+**/addremarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n \
+**/addset <stage> <set_time> <artist> <set_length>**: add a set into the schedule\n \
 **/alertlist**: replies with full alert list\n \
 **/atis <zulu>**: replies with the area ATIS, current artists on stage, and time remaining in sets (set zulu flag to true for Zulu times)\n \
+**/clearremarks**: clears all of your remarks\n \
 **/fullschedule <stage>**: replies with the full schedule for the specified stage\n \
 **/help**: replies with this help message\n \
-**/remarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n \
 **/rmalert <artist>**: removes artists that match seach term from alert list\n \
 **/taf <zulu>**: replies with the area TAF, upcoming sets and times by stage (set zulu flag to true for Zulu times)")
 
@@ -130,12 +133,31 @@ async def alertlist(ctx: SlashContext):
 			listcompose+="\n- " + (x["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + x["artistname"] + " at " + x["stagename"] + " T-" + str(x["alertinterval"]) + " (" + str(x["author"]) + ")"
 		await ctx.send(listcompose)
 
-@slash_command(name="remarks", description="Change the additional remarks")
-@slash_option(name="remarks_text", description="Remarks text", required=True, opt_type=OptionType.STRING)
-async def remarks(ctx: SlashContext, remarks_text: str):
+@slash_command(name="addremarks", description="Add additional remarks")
+@slash_option(name="remarks", description="Remarks text", required=True, opt_type=OptionType.STRING, min_length=2)
+async def addremarks(ctx: SlashContext, remarks: str):
 	global additionalrmks
-	await ctx.send("Remarks set.")
-	additionalrmks=(remarks_text)
+	remarks_dict={"remarktext": remarks, "author": ctx.author}
+	additionalrmks.append(remarks_dict)
+	await ctx.send("Remarks added.")
+
+@slash_command(name="clearremarks", description="Clear all of your remarks")
+async def clearremarks(ctx: SlashContext):
+	global additionalrmks
+	remarkstoclear=False
+	additionalrmkscopy=[]
+	for x in additionalrmks:
+		if (x["author"]!=ctx.author):
+			additionalrmkscopy.append(x)
+		else:
+			remarkstoclear=True
+
+	additionalrmks = additionalrmkscopy[:]
+	if (remarkstoclear == True):
+		await ctx.send("Remarks cleared.")
+	else:
+		await ctx.send("You have no remarks to clear.")
+	
 
 @slash_command(name="addalert", description="Add an existing set to the alert list")
 @slash_option(name="artist", description="Artist search term", required=True, opt_type=OptionType.STRING, min_length=3)
@@ -214,7 +236,7 @@ async def atis(ctx: SlashContext, zulu: bool = False):
 	end=atisoutput.find("</raw_text>")
 
 	atiscompare=[]
-	atiscompare.append(atisoutput[begin+2:end] + "\n\nREMARKS\n")
+	atiscompare.append(atisoutput[begin+2:end] + "\n\nREMARKS")
 	timeremaintext=[]
 
 	#iterate through each stage
@@ -259,9 +281,11 @@ async def atis(ctx: SlashContext, zulu: bool = False):
 	#initialize blank remarks to end of list
 	atiscompare.append("")
 
-	#add remarks
+	#add remarks into last entry of atiscompare list
 	if (len(additionalrmks)>0):
-		atiscompare[len(atiscompare)-1]="\n\nADDITIONAL RMKS: " + additionalrmks
+		atiscompare[len(atiscompare)-1]="\n\nADDITIONAL REMARKS"
+		for j in additionalrmks:
+			atiscompare[len(atiscompare)-1]+="\n- "+j["remarktext"] + " (" + str(j["author"]) + ")"
 
 	#check if new ATIS matches old, if not advance ATIS letter
 	if (len(currentatistext)==0):
@@ -305,10 +329,12 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 	end=tafoutput.find("</raw_text>")
 
 	if (zulu == True):
-		combined = eventvenuename + " TAF " + currentdatetime.strftime("%d%H%M**Z** ") + tafoutput[begin+2:end] + "\n\nREMARKS\n"
+		combined = eventvenuename + " TAF " + currentdatetime.strftime("%d%H%M**Z** ") + tafoutput[begin+2:end]
 
 	else:
-		combined = eventvenuename + " TAF " + (currentdatetime+timedelta(hours=utcoffset)).strftime("%d%H%M**L** **(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:end] + "\n\nREMARKS\n"
+		combined = eventvenuename + " TAF " + (currentdatetime+timedelta(hours=utcoffset)).strftime("%d%H%M**L** **(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:end]
+
+	combined += "\n\nREMARKS"
 
 	for stageindex in range(0,len(setdata)):
 		combined += "\n**" + setdata[stageindex][0]["stagename"] + "**: FM"
@@ -344,8 +370,11 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 			else:
 				continue
 
-	if (len(additionalrmks)>1):
-		combined+="\n\nADDITIONAL RMKS: " + additionalrmks
+	if (len(additionalrmks)>0):
+		combined+="\n\nADDITIONAL REMARKS"
+		for j in additionalrmks:
+			combined+="\n- "+j["remarktext"] + " (" + str(j["author"]) + ")"
+
 	await ctx.send(combined)
 
 @slash_command(name="addset", description="Create a new set and add it to the schedule")
