@@ -113,12 +113,13 @@ async def help(ctx: SlashContext):
 	await ctx.send("## Commands\n>>> **/addalert <artist> <alert_interval>**: adds artists that match search term into alert list with respective alert interval (default is 15 minutes)\n \
 **/alertlist**: replies with full alert list\n \
 **/atis <zulu>**: replies with the area ATIS, current artists on stage, and time remaining in sets (set zulu flag to true for Zulu times)\n \
+**/fullschedule <stage>**: replies with the full schedule for the specified stage\n \
 **/help**: replies with this help message\n \
 **/remarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n \
 **/rmalert <artist>**: removes artists that match seach term from alert list\n \
 **/taf <zulu>**: replies with the area TAF, upcoming sets and times by stage (set zulu flag to true for Zulu times)")
 
-@slash_command(name="alertlist", description="Show all sets on the alert list")
+@slash_command(name="alertlist", description="List all sets on the alert list")
 async def alertlist(ctx: SlashContext):
 	listcompose = ""
 	if (len(markedsets)==0):
@@ -310,10 +311,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 		combined = eventvenuename + " TAF " + (currentdatetime+timedelta(hours=utcoffset)).strftime("%d%H%M**L** **(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:end] + "\n\nREMARKS\n"
 
 	for stageindex in range(0,len(setdata)):
-		settimeindex = stageindex+1
-		artistindex = stageindex+2
 		combined += "\n**" + setdata[stageindex][0]["stagename"] + "**: FM"
-		timeremaintext = ""
 		for idx, x in reversed(list(enumerate(setdata[stageindex]))):
 			#if current time is past time of first set
 			if (currentdatetime >= setdata[stageindex][idx]["settime"]):
@@ -402,7 +400,7 @@ async def autocomplete(ctx: AutocompleteContext):
 	await ctx.send(choices=choicelist[:])
 
 
-@slash_command(name="fullschedule", description="See the full schedule for a stage")
+@slash_command(name="fullschedule", description="List the full schedule for a stage")
 @slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=4)
 async def fullschedule(ctx: SlashContext, stage: str):
 	stagefound = False
