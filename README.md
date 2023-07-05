@@ -8,6 +8,9 @@ Features
 - Set timing across multiple stages
 - Set alerts with user-configurable alert timing intervals
 - Automatic UTC and local time conversion
+- Supports Discord app commands
+- Modify schedules on-the-fly
+- Automatic set sorting
 
 
 Schedule Format
