@@ -11,14 +11,15 @@ Features
 - Supports Discord app commands
 - Modify schedules on-the-fly
 - Automatic set sorting
+- Official METAR/TAF output from NOAA
 
 
-Schedule Format
-
+## Schedule Format
+```
 Venue name  
 UTC offset  
 METAR/TAF source ICAO code  
 Stage 1^Set 1 time,artist 1 name,set 2 time,artist 2 time...  
 Stage 2^Set 1 time,artist 1 name,set 2 time,artist 2 time...
-
+```
 

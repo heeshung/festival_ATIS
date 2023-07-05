@@ -390,9 +390,38 @@ async def addset(ctx: SlashContext, stage: str, set_time: str, artist: str, set_
 	else:
 		await ctx.send("Error creating new set.")
 
-	
 
+#addset autocomplete
 @addset.autocomplete("stage")
+async def autocomplete(ctx: AutocompleteContext):
+	choicelist=[]
+	for x in setdata:
+		stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
+		choicelist.append(stage_dict)
+		
+	await ctx.send(choices=choicelist[:])
+
+
+@slash_command(name="fullschedule", description="See the full schedule for a stage")
+@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=4)
+async def fullschedule(ctx: SlashContext, stage: str):
+	stagefound = False
+	#step through schedule
+	for x in setdata:
+		if (stage.lower() in x[0]["stagename"].lower()):
+			listcompose = "## **" + x[0]["stagename"] + " FULL SCHEDULE:**"
+			stagefound = True
+			for y in x:
+				listcompose+="\n" + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + y["artistname"]
+			await ctx.send(listcompose)
+			break
+
+	#return error if stage isn't found
+	if (stagefound == False):
+		await ctx.send("Couldn't find '"+stage+"' in list of stages.")
+
+#fullschedule autocomplete
+@fullschedule.autocomplete("stage")
 async def autocomplete(ctx: AutocompleteContext):
 	choicelist=[]
 	for x in setdata:
