@@ -89,7 +89,8 @@ async def alerter():
 
 	#iterate through alert list
 	for x in markedsets:
-		if ((x["settime"]-currentdatetime).total_seconds()/60 < x["alertinterval"] and (x["settime"]-currentdatetime).total_seconds() > 0):
+		#if time to set is below the alert interval and set is still in the future
+		if ((x["settime"]-currentdatetime).total_seconds()/60 <= x["alertinterval"] and (x["settime"]-currentdatetime).total_seconds() > 0):
 			if ((x["settime"]-currentdatetime).total_seconds()/60 < 2):
 				await channel.send("ATTENTION ALL AIRCRAFT: **" + x["artistname"] + "** BEGINS **NOW** AT " + x["stagename"] + " (alert set by " + x["author"].mention + ").")
 			else:
@@ -137,7 +138,7 @@ async def remarks(ctx: SlashContext, remarks_text: str):
 
 @slash_command(name="addalert", description="Add an existing set to the alert list")
 @slash_option(name="artist", description="Artist search term", required=True, opt_type=OptionType.STRING, min_length=3)
-@slash_option(name="alert_interval", description="Number of minutes prior to set to be alerted", required=False, opt_type=OptionType.INTEGER)
+@slash_option(name="alert_interval", description="Number of minutes prior to set to be alerted", required=False, opt_type=OptionType.INTEGER, min_value=1)
 async def addalert(ctx: SlashContext, artist: str, alert_interval: int = 15):
 	global markedsets
 
