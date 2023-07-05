@@ -69,7 +69,6 @@ currentatisindex=0
 
 markedsets=[]
 
-alertinterval=15
 
 async def schedulesorter():
 	global setdata
@@ -80,7 +79,7 @@ async def schedulesorter():
 		sortedsetdata.append(sortedstage)
 	setdata=sortedsetdata[:]
 
-@Task.create(IntervalTrigger(seconds=10))
+@Task.create(IntervalTrigger(seconds=20))
 async def alerter():
 	global markedsets
 
@@ -90,8 +89,12 @@ async def alerter():
 
 	#iterate through alert list
 	for x in markedsets:
-		if ((x["settime"]-currentdatetime).total_seconds()/60 < alertinterval and (x["settime"]-currentdatetime).total_seconds() > 0):
-			await channel.send("ATTENTION ALL AIRCRAFT: **" + x["artistname"] + "** BEGINS IN **" + str(math.ceil((x["settime"]-currentdatetime).total_seconds()/60)) + " MINUTES** AT " + x["stagename"] + " (alert set by " + x["author"].mention + ").")
+		if ((x["settime"]-currentdatetime).total_seconds()/60 < x["alertinterval"] and (x["settime"]-currentdatetime).total_seconds() > 0):
+			if ((x["settime"]-currentdatetime).total_seconds()/60 < 2):
+				await channel.send("ATTENTION ALL AIRCRAFT: **" + x["artistname"] + "** BEGINS **NOW** AT " + x["stagename"] + " (alert set by " + x["author"].mention + ").")
+			else:
+				await channel.send("ATTENTION ALL AIRCRAFT: **" + x["artistname"] + "** BEGINS IN **" + str(math.ceil((x["settime"]-currentdatetime).total_seconds()/60)) + " MINUTES** AT " + x["stagename"] + " (alert set by " + x["author"].mention + ").")
+		#append to list to copy over if not alerted
 		else:
 			markedsetscopy.append(x)
 	markedsets = markedsetscopy[:]
@@ -106,20 +109,13 @@ async def on_ready():
 
 @slash_command(name="help", description="Show the help menu with all available commands")
 async def help(ctx: SlashContext):
-	await ctx.send("## Commands\n>>> **/help**: replies with this help message\n**/atis**: replies with the area ATIS, current artists on stage, and time remaining in sets\n**/taf**: replies with the area TAF, upcoming sets and \
-times by stage\n**/addalert <artist>**: adds artists that match search term into alert list\n**/rmalert <artist>**: removes artists that match seach term from alert list\n**/alertlist**: replies with full alert list\n**/alertint <minutes>**: changes the alert \
-interval to the specified number of minutes\n**/remarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF")
-
-@slash_command(name="alertint", description="Set the alert interval in minutes")
-@slash_option(name="minutes",description="Alert interval in minutes", required=True, opt_type=OptionType.INTEGER)
-async def alertint(ctx: SlashContext, minutes: int):
-	global alertinterval
-	try:
-		alertinterval = minutes
-	except:
-		await ctx.send('Error setting alert interval.')
-	else:
-		await ctx.send(('Set alert interval to ') + str(alertinterval) + (' minutes.'))
+	await ctx.send("## Commands\n>>> **/addalert <artist> <alert_interval>**: adds artists that match search term into alert list with respective alert interval (default is 15 minutes)\n \
+**/alertlist**: replies with full alert list\n \
+**/atis <zulu>**: replies with the area ATIS, current artists on stage, and time remaining in sets (set zulu flag to true for Zulu times)\n \
+**/help**: replies with this help message\n \
+**/remarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n \
+**/rmalert <artist>**: removes artists that match seach term from alert list\n \
+**/taf <zulu>**: replies with the area TAF, upcoming sets and times by stage (set zulu flag to true for Zulu times)")
 
 @slash_command(name="alertlist", description="Show all sets on the alert list")
 async def alertlist(ctx: SlashContext):
@@ -129,7 +125,7 @@ async def alertlist(ctx: SlashContext):
 	else:
 		listcompose+='ALERT LIST:'
 		for x in markedsets:
-			listcompose+="\n- " + (x["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + x["artistname"] + " at " + x["stagename"] + " (" + str(x["author"]) + ")"
+			listcompose+="\n- " + (x["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + x["artistname"] + " at " + x["stagename"] + " T-" + str(x["alertinterval"]) + " (" + str(x["author"]) + ")"
 		await ctx.send(listcompose)
 
 @slash_command(name="remarks", description="Change the additional remarks")
@@ -141,7 +137,8 @@ async def remarks(ctx: SlashContext, remarks_text: str):
 
 @slash_command(name="addalert", description="Add an existing set to the alert list")
 @slash_option(name="artist", description="Artist search term", required=True, opt_type=OptionType.STRING, min_length=3)
-async def addalert(ctx: SlashContext, artist: str):
+@slash_option(name="alert_interval", description="Number of minutes prior to set to be alerted", required=False, opt_type=OptionType.INTEGER)
+async def addalert(ctx: SlashContext, artist: str, alert_interval: int = 15):
 	global markedsets
 
 	#get current time
@@ -150,40 +147,35 @@ async def addalert(ctx: SlashContext, artist: str):
 	searchterm = artist.lower()
 	matchfound = False
 
-	#check for empty search
-	if (len(searchterm)==0):
-		await ctx.send("Search term is empty.")
-
-	else:
-		#iterate through all sets and mark priority sets
-		for x in setdata:
-			for a in x:
-				#check if set is already added
-				if (searchterm in a["artistname"].lower() and (a["settime"]-currentdatetime).total_seconds()/60 > alertinterval):
-					alreadyadded = False
-					for y in markedsets:
-						if (a["artistname"] == y["artistname"] and a["stagename"] == y["stagename"] and a["settime"] == y["settime"]):
-							alreadyadded = True
-							break
-					#skip if already added
-					if (alreadyadded == True):
-						continue
-					else:
-						set_dict={"stagename": a["stagename"], "artistname": a["artistname"], "settime": a["settime"], "author": ctx.author}
-						markedsets.append(set_dict)
-						matchfound = True
-						await ctx.send(ctx.author.mention + " added " + a["artistname"] + "'s " + a["stagename"] + " set at " + (a["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " to the alert list. :white_check_mark:")
-						#sort alert list
-						sortedsets=sorted(markedsets, key=lambda d: d["settime"])
-						markedsets=sortedsets[:]
-				
-		#if no match is found
-		if (matchfound == False):
-			await ctx.send("Couldn't find any artists with '"+artist+"' in their name with future sets.")
+	#iterate through all sets and mark priority sets
+	for x in setdata:
+		for a in x:
+			#check if alert is already added
+			if (searchterm in a["artistname"].lower() and (a["settime"]-currentdatetime).total_seconds()/60 > alert_interval):
+				alreadyadded = False
+				for y in markedsets:
+					if (a["artistname"] == y["artistname"] and a["stagename"] == y["stagename"] and a["settime"] == y["settime"] and alert_interval == y["alertinterval"]):
+						alreadyadded = True
+						break
+				#skip if already added
+				if (alreadyadded == True):
+					continue
+				else:
+					set_dict={"stagename": a["stagename"], "artistname": a["artistname"], "settime": a["settime"], "author": ctx.author, "alertinterval": alert_interval}
+					markedsets.append(set_dict)
+					matchfound = True
+					await ctx.send(ctx.author.mention + " added " + a["artistname"] + "'s " + a["stagename"] + " set at " + (a["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " to the alert list. :white_check_mark:")
+					#sort alert list
+					sortedsets=sorted(markedsets, key=lambda d: (d["settime"], d["artistname"], d["alertinterval"]))
+					markedsets=sortedsets[:]
+			
+	#if no match is found
+	if (matchfound == False):
+		await ctx.send("Couldn't find any artists with '"+artist+"' in their name with sets and alert intervals that are not already on the alert list.")
 
 
 @slash_command(name="rmalert", description="Remove a set from the alert list")
-@slash_option(name="artist", description="Artist search term", required=True, opt_type=OptionType.STRING)
+@slash_option(name="artist", description="Artist search term", required=True, opt_type=OptionType.STRING, min_length=3)
 async def rmalert(ctx: SlashContext, artist: str):
 	global markedsets
 
@@ -358,7 +350,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 	await ctx.send(combined)
 
 @slash_command(name="addset", description="Create a new set and add it to the schedule")
-@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True)
+@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=4)
 @slash_option(name="set_time", description="LOCAL Set time (use DDHHMM)", required=True, opt_type=OptionType.STRING, min_length=6, max_length=6)
 @slash_option(name="artist", description="Name of artist", required=True, opt_type=OptionType.STRING, min_length=3)
 @slash_option(name="set_length", description="Length of set in minutes", required=True, opt_type=OptionType.INTEGER)
