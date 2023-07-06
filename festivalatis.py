@@ -7,7 +7,6 @@ from interactions.api.events import Component
 from interactions.ext import prefixed_commands
 from datetime import timezone, timedelta, datetime
 
-
 #bot setup
 bot = Client(intents=Intents.DEFAULT, sync_interactions=True, asyncio_debug=True)
 prefixed_commands.setup(bot)
@@ -22,6 +21,12 @@ currentmonth = datetime.utcnow().strftime("%m")
 tokenfile = open ("token","r")
 token = tokenfile.read()
 tokenfile.close()
+
+#read atis channel
+channelfile = open ("channelid","r")
+#convert to int
+channelid = int(channelfile.read())
+channelfile.close()
 
 #read schedule
 schedule = open("schedule","r")
@@ -103,10 +108,15 @@ async def alerter():
 @listen()
 async def on_ready():
 	global channel
-	channel = await bot.fetch_channel(channel_id=746263960646451241)
+	channel = await bot.fetch_channel(channel_id=channelid)
 	#await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
 	await schedulesorter()
 	alerter.start()
+
+@listen()
+async def on_message_create(event):
+	if (event.message.guild==None and event.message.author == bot.owner):
+		await channel.send(event.message.content)
 
 @slash_command(name="help", description="Show the help menu with all available commands")
 async def help(ctx: SlashContext):
