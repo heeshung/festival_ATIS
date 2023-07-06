@@ -100,7 +100,7 @@ async def alerter():
 			if ((x["settime"]-currentdatetime).total_seconds()/60 < 2):
 				await channel.send("ATTENTION ALL AIRCRAFT @here: **" + x["artistname"] + "** BEGINS **NOW** AT **" + x["stagename"] + "** (alert set by " + x["author"].mention + ").")
 			else:
-				await channel.send("ATTENTION ALL AIRCRAFT @here: **" + x["artistname"] + "** BEGINS IN **" + str(math.ceil((x["settime"]-currentdatetime).total_seconds()/60)) + " MINUTES** AT **" + x["stagename"] + "** (alert set by " + x["author"].mention + ").")
+				await channel.send("ATTENTION ALL AIRCRAFT @here: **" + x["artistname"] + "** BEGINS IN **" + str(math.ceil((x["settime"]-currentdatetime).total_seconds()/60)) + " MIN** AT **" + x["stagename"] + "** (alert set by " + x["author"].mention + ").")
 		#append to list to copy over if not alerted
 		else:
 			markedsetscopy.append(x)
