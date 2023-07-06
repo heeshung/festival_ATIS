@@ -118,6 +118,8 @@ async def on_ready():
 async def on_message_create(event):
 	if (event.message.guild==None and event.message.author == bot.owner):
 		await channel.send(event.message.content)
+	elif ("what song is this" in event.message.content.lower() and even.message.guild != None):
+		await channel.send(event.message.author.mention + " It's Darude - Sandstorm.")
 
 @slash_command(name="help", description="Show the help menu with all available commands")
 async def help(ctx: SlashContext):
