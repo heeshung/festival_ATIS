@@ -145,7 +145,7 @@ async def help(ctx: SlashContext):
 - **/alertlist**: replies with full alert list\n \
 - **/atis** <zulu>: replies with the area ATIS, current artists on stage, and time remaining in sets (set zulu flag to true for Zulu times)\n \
 - **/clearremarks**: clears all of your remarks\n \
-- **/createset <stage> <set_time> <artist> <set_length>**: create a new set and it to the schedule\n \
+- **/createset <stage> <set_time> <artist> <set_length> <does_stage_close>**: create a new set and it to the schedule; set <does_stage_close> to True if stage closes after set\n \
 - **/fullschedule <stage>**: replies with the full schedule for the specified stage\n \
 - **/help**: replies with this help message\n \
 - **/rmalert <artist>** <stage>: removes artists that match seach term from alert list\n \
@@ -472,7 +472,8 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 @slash_option(name="artist", description="Name of artist", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
 @slash_option(name="set_time", description="LOCAL Set time (use DDHHMM)", required=True, opt_type=OptionType.STRING, min_length=6, max_length=6)
 @slash_option(name="set_length", description="Length of set in minutes", required=True, opt_type=OptionType.INTEGER)
-async def createset(ctx: SlashContext, stage: str, artist: str, set_time: str, set_length: int):
+@slash_option(name="does_stage_close", description="Denotes if stage closes after added set", required=True, opt_type=OptionType.BOOLEAN)
+async def createset(ctx: SlashContext, stage: str, artist: str, set_time: str, set_length: int, does_stage_close: bool):
 
 	setadded = False
 	formattedsettime = datetime.strptime(currentyear+currentmonth+set_time,'%y%m%d%H%M')
@@ -488,7 +489,9 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_time: str, s
 	for x in setdata:
 		if (x[0]["stagename"]==stage):
 			x.append(set_dict)
-			x.append(end_dict)
+			#add STGE CLSD if stage closes
+			if (does_stage_close==True):
+				x.append(end_dict)
 			setadded = True
 			break
 
