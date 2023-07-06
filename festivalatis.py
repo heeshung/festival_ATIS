@@ -140,17 +140,19 @@ async def on_message_create(event):
 @slash_command(name="help", description="Show the help menu with all available commands")
 async def help(ctx: SlashContext):
 	await ctx.send("## Commands\n>>>  \
-**/addalert <artist> <alert_interval>**: adds artists that match search term into alert list with respective alert interval (default is 15 minutes)\n \
+**/addalert <artist>** <stage> <alert_interval>: adds artists that match search term into alert list with respective alert interval (default is 15 minutes)\n \
 **/addremarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n \
-**/createset <stage> <set_time> <artist> <set_length>**: create a new set and it to the schedule\n \
 **/alertlist**: replies with full alert list\n \
-**/atis <zulu>**: replies with the area ATIS, current artists on stage, and time remaining in sets (set zulu flag to true for Zulu times)\n \
+**/atis** <zulu>: replies with the area ATIS, current artists on stage, and time remaining in sets (set zulu flag to true for Zulu times)\n \
 **/clearremarks**: clears all of your remarks\n \
+**/createset <stage> <set_time> <artist> <set_length>**: create a new set and it to the schedule\n \
 **/fullschedule <stage>**: replies with the full schedule for the specified stage\n \
 **/help**: replies with this help message\n \
-**/rmalert <artist>**: removes artists that match seach term from alert list\n \
+**/rmalert <artist>** <stage>: removes artists that match seach term from alert list\n \
 **/rmset <stage> <set_time> <artist>**: remove a set you created from the schedule\n \
-**/taf <zulu>**: replies with the area TAF, upcoming sets and times by stage (set zulu flag to true for Zulu times)")
+**/searchsets <artist>**: replies with a list of all sets for the specified artist\n \
+**/taf** <zulu>: replies with the area TAF, upcoming sets and times by stage (set zulu flag to true for Zulu times) \n \
+**bold** flags are required")
 
 @slash_command(name="alertlist", description="List all sets on the alert list")
 async def alertlist(ctx: SlashContext):
