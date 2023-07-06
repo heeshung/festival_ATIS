@@ -228,7 +228,7 @@ async def addalert(ctx: SlashContext, artist: str, stage: str='', alert_interval
 			
 	#if no match is found
 	if (matchfound == False):
-		await ctx.send("Couldn't find any artists with '"+artist+"' in their name with sets and alert intervals that are not already on the alert list.")
+		await ctx.send("Couldn't find any sets with '"+artist+"' in the artist name with sets and alert intervals that are not already on the alert list.")
 
 
 #addalert artist autocomplete
@@ -277,7 +277,7 @@ async def rmalert(ctx: SlashContext, artist: str, stage: str=""):
 			markedsetscopy.append(x)
 	markedsets=markedsetscopy[:]
 	if (matchfound == False):
-		await ctx.send("Couldn't find any artists with '"+artist+"' in their name in the alert list.")
+		await ctx.send("Couldn't find any alerts with the entered parameters that you created, " + ctx.author.mention + ".")
 
 #rmalert artist autocomplete (only need to populate with artists in the alert list)
 @rmalert.autocomplete("artist")
