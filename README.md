@@ -13,6 +13,7 @@ Features
 - Automatic set sorting
 - Official METAR/TAF output from NOAA
 - Individualized additional remarks
+- Autocomplete-enabled flags
 
 
 ## Schedule Format
