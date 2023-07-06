@@ -508,7 +508,7 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_time: str, s
 		await artistlistmaintain()
 		#sort schedule after addition
 		await schedulesorter()
-		await ctx.send(ctx.author.mention + " created a new " + str(set_length) + " minute long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + "**. :sparkles::sparkles:")
+		await ctx.send(ctx.author.mention + " created a new " + str(set_length) + " min long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + "**. :sparkles::sparkles:")
 	else:
 		await ctx.send("Error creating new set.")
 
