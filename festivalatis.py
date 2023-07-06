@@ -24,6 +24,7 @@ tokenfile.close()
 
 #read atis channel
 channelfile = open ("channelid","r")
+
 #convert to int
 channelid = int(channelfile.read())
 channelfile.close()
@@ -97,9 +98,9 @@ async def alerter():
 		#if time to set is below the alert interval and set is still in the future
 		if ((x["settime"]-currentdatetime).total_seconds()/60 <= x["alertinterval"] and (x["settime"]-currentdatetime).total_seconds() > 0):
 			if ((x["settime"]-currentdatetime).total_seconds()/60 < 2):
-				await channel.send("ATTENTION ALL AIRCRAFT: **" + x["artistname"] + "** BEGINS **NOW** AT " + x["stagename"] + " (alert set by " + x["author"].mention + ").")
+				await channel.send("ATTENTION ALL AIRCRAFT @here: **" + x["artistname"] + "** BEGINS **NOW** AT **" + x["stagename"] + "** (alert set by " + x["author"].mention + ").")
 			else:
-				await channel.send("ATTENTION ALL AIRCRAFT: **" + x["artistname"] + "** BEGINS IN **" + str(math.ceil((x["settime"]-currentdatetime).total_seconds()/60)) + " MINUTES** AT " + x["stagename"] + " (alert set by " + x["author"].mention + ").")
+				await channel.send("ATTENTION ALL AIRCRAFT @here: **" + x["artistname"] + "** BEGINS IN **" + str(math.ceil((x["settime"]-currentdatetime).total_seconds()/60)) + " MINUTES** AT **" + x["stagename"] + "** (alert set by " + x["author"].mention + ").")
 		#append to list to copy over if not alerted
 		else:
 			markedsetscopy.append(x)
@@ -109,7 +110,7 @@ async def alerter():
 async def on_ready():
 	global channel
 	channel = await bot.fetch_channel(channel_id=channelid)
-	#await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
+	await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
 	await schedulesorter()
 	alerter.start()
 
