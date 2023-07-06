@@ -51,21 +51,36 @@ numstages=(len(''.join(schedule_parsed[3:]).split("^"))-1)
 
 setdata=[]
 
-#parse schedule data
-for x in range(3,numstages+3):
-	#separate stage name and set data
-	stagedata = schedule_parsed[x].split("^")
-	sets_parsed = stagedata[1].split(",")
-	stagename = stagedata[0]
-	setdatabystage=[]
-	for z in range(0,len(sets_parsed),2):
-		#convert string into datetime
-		formattedtime = datetime.strptime(currentyear+currentmonth+sets_parsed[z],'%y%m%d%H%M')
-		#add UTC offset
-		formattedtime -= timedelta(hours=utcoffset)
-		set_dict = {"stagename": stagedata[0], "artistname": sets_parsed[z+1], "settime": formattedtime}
-		setdatabystage.append(set_dict)
-	setdata.append(setdatabystage)
+
+
+#refreshes artistlist and sorts
+async def artistlistmaintain():
+	global artistlist
+	artistlist=[]
+	for x in setdata:
+		for y in x:
+			if (y["artistname"] not in artistlist):
+				artistlist.append(y["artistname"])
+
+	artistlist.sort()
+
+async def scheduleparser():
+	#parse schedule data
+	for x in range(3,numstages+3):
+		#separate stage name and set data
+		stagedata = schedule_parsed[x].split("^")
+		sets_parsed = stagedata[1].split(",")
+		setdatabystage=[]
+		for z in range(0,len(sets_parsed),2):
+			#convert string into datetime
+			formattedtime = datetime.strptime(currentyear+currentmonth+sets_parsed[z],'%y%m%d%H%M')
+			#add UTC offset
+			formattedtime -= timedelta(hours=utcoffset)
+			set_dict = {"stagename": stagedata[0], "artistname": sets_parsed[z+1], "settime": formattedtime, "addedby": bot.owner}
+			setdatabystage.append(set_dict)
+		setdata.append(setdatabystage)
+	#refresh artistlist
+	await artistlistmaintain()
 
 
 additionalrmks=[]
@@ -110,13 +125,14 @@ async def alerter():
 async def on_ready():
 	global channel
 	channel = await bot.fetch_channel(channel_id=channelid)
-	await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
+	await scheduleparser()
+	#await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
 	await schedulesorter()
 	alerter.start()
 
 @listen()
 async def on_message_create(event):
-	if ("what song is this" in event.message.content.lower() and event.message.guild == None):
+	if (("what song is this" in event.message.content.lower() or "what is this song" in event.message.content.lower()) and event.message.guild == None):
 		await event.message.channel.send(event.message.author.mention + " It's Darude - Sandstorm.")
 	elif (event.message.guild==None and event.message.author == bot.owner):
 		await channel.send(event.message.content)
@@ -126,13 +142,14 @@ async def help(ctx: SlashContext):
 	await ctx.send("## Commands\n>>>  \
 **/addalert <artist> <alert_interval>**: adds artists that match search term into alert list with respective alert interval (default is 15 minutes)\n \
 **/addremarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n \
-**/addset <stage> <set_time> <artist> <set_length>**: add a set into the schedule\n \
+**/createset <stage> <set_time> <artist> <set_length>**: create a new set and it to the schedule\n \
 **/alertlist**: replies with full alert list\n \
 **/atis <zulu>**: replies with the area ATIS, current artists on stage, and time remaining in sets (set zulu flag to true for Zulu times)\n \
 **/clearremarks**: clears all of your remarks\n \
 **/fullschedule <stage>**: replies with the full schedule for the specified stage\n \
 **/help**: replies with this help message\n \
 **/rmalert <artist>**: removes artists that match seach term from alert list\n \
+**/rmset <stage> <set_time> <artist>**: remove a set you created from the schedule\n \
 **/taf <zulu>**: replies with the area TAF, upcoming sets and times by stage (set zulu flag to true for Zulu times)")
 
 @slash_command(name="alertlist", description="List all sets on the alert list")
@@ -141,7 +158,7 @@ async def alertlist(ctx: SlashContext):
 	if (len(markedsets)==0):
 		await ctx.send('No alerts set.')
 	else:
-		listcompose+='ALERT LIST:'
+		listcompose+='## ALERT LIST:'
 		for x in markedsets:
 			listcompose+="\n- " + (x["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + x["artistname"] + " at " + x["stagename"] + " T-" + str(x["alertinterval"]) + " (" + str(x["author"]) + ")"
 		await ctx.send(listcompose)
@@ -173,9 +190,10 @@ async def clearremarks(ctx: SlashContext):
 	
 
 @slash_command(name="addalert", description="Add an existing set to the alert list")
-@slash_option(name="artist", description="Artist search term", required=True, opt_type=OptionType.STRING, min_length=3)
+@slash_option(name="artist", description="Artist search term", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+@slash_option(name="stage", description="Artist search term", required=False, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
 @slash_option(name="alert_interval", description="Number of minutes prior to set to be alerted", required=False, opt_type=OptionType.INTEGER, min_value=1)
-async def addalert(ctx: SlashContext, artist: str, alert_interval: int = 15):
+async def addalert(ctx: SlashContext, artist: str, stage: str='', alert_interval: int = 15):
 	global markedsets
 
 	#get current time
@@ -188,7 +206,7 @@ async def addalert(ctx: SlashContext, artist: str, alert_interval: int = 15):
 	for x in setdata:
 		for a in x:
 			#check if alert is already added
-			if (searchterm in a["artistname"].lower() and (a["settime"]-currentdatetime).total_seconds()/60 > alert_interval):
+			if (searchterm in a["artistname"].lower() and stage.lower() in a["stagename"].lower() and (a["settime"]-currentdatetime).total_seconds()/60 > alert_interval):
 				alreadyadded = False
 				for y in markedsets:
 					if (a["artistname"] == y["artistname"] and a["stagename"] == y["stagename"] and a["settime"] == y["settime"] and alert_interval == y["alertinterval"]):
@@ -211,16 +229,45 @@ async def addalert(ctx: SlashContext, artist: str, alert_interval: int = 15):
 		await ctx.send("Couldn't find any artists with '"+artist+"' in their name with sets and alert intervals that are not already on the alert list.")
 
 
+#addalert artist autocomplete
+@addalert.autocomplete("artist")
+async def autocomplete(ctx: AutocompleteContext):
+	choicelist=[]
+	for x in artistlist:		
+		if (ctx.input_text.lower() in x.lower()):
+				artist_dict = {"name": x,"value": x}
+				choicelist.append(artist_dict)
+
+	if (len(choicelist)>25):
+		await ctx.send(choices=choicelist[:25])
+	else:
+		await ctx.send(choices=choicelist[:])
+
+#addalert stage autocomplete
+@addalert.autocomplete("stage")
+async def autocomplete(ctx: AutocompleteContext):
+	choicelist=[]
+	for x in setdata:
+		if (ctx.input_text.lower() in x[0]["stagename"].lower()):
+			stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
+			choicelist.append(stage_dict)
+
+	if (len(choicelist)>25):
+		await ctx.send(choices=choicelist[:25])
+	else:
+		await ctx.send(choices=choicelist[:])
+
 @slash_command(name="rmalert", description="Remove a set from the alert list")
-@slash_option(name="artist", description="Artist search term", required=True, opt_type=OptionType.STRING, min_length=3)
-async def rmalert(ctx: SlashContext, artist: str):
+@slash_option(name="artist", description="Artist search term", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+@slash_option(name="stage", description="Artist search term", required=False, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+async def rmalert(ctx: SlashContext, artist: str, stage: str=""):
 	global markedsets
 
 	matchfound = False
 	markedsetscopy = []
 	searchterm = (artist).lower()
 	for x in markedsets:
-		if (searchterm in x["artistname"].lower()):
+		if (searchterm in x["artistname"].lower() and stage.lower() in x["stagename"].lower() and ctx.author == x["author"]):
 			matchfound = True
 			await ctx.send(ctx.author.mention + " removed " + x["artistname"] + "'s " + x["stagename"] + " set at " + (x["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " from the alert list. :x:")
 		else:
@@ -229,6 +276,34 @@ async def rmalert(ctx: SlashContext, artist: str):
 	markedsets=markedsetscopy[:]
 	if (matchfound == False):
 		await ctx.send("Couldn't find any artists with '"+artist+"' in their name in the alert list.")
+
+#rmalert artist autocomplete (only need to populate with artists in the alert list)
+@rmalert.autocomplete("artist")
+async def autocomplete(ctx: AutocompleteContext):
+	choicelist=[]
+	for x in markedsets:
+		if (ctx.input_text.lower() in x["artistname"].lower()):
+				artist_dict = {"name": x["artistname"],"value": x["artistname"]}
+				choicelist.append(artist_dict)
+
+	if (len(choicelist)>25):
+		await ctx.send(choices=choicelist[:25])
+	else:
+		await ctx.send(choices=choicelist[:])
+
+#rmalert stage autocomplete (only need to populate with stages in the alert list)
+@rmalert.autocomplete("stage")
+async def autocomplete(ctx: AutocompleteContext):
+	choicelist=[]
+	for x in markedsets:
+		if (ctx.input_text.lower() in x["stagename"].lower()):
+			stage_dict = {"name": x["stagename"],"value": x["stagename"]}
+			choicelist.append(stage_dict)
+
+	if (len(choicelist)>25):
+		await ctx.send(choices=choicelist[:25])
+	else:
+		await ctx.send(choices=choicelist[:])
 
 @slash_command(name="atis", description="Show the ATIS, including current weather and sets")
 @slash_option(name="zulu", description="Zulu flag (true/false)", required=False, opt_type=OptionType.BOOLEAN)
@@ -390,12 +465,12 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 
 	await ctx.send(combined)
 
-@slash_command(name="addset", description="Create a new set and add it to the schedule")
-@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=4)
+@slash_command(name="createset", description="Create a new set and add it to the schedule")
+@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+@slash_option(name="artist", description="Name of artist", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
 @slash_option(name="set_time", description="LOCAL Set time (use DDHHMM)", required=True, opt_type=OptionType.STRING, min_length=6, max_length=6)
-@slash_option(name="artist", description="Name of artist", required=True, opt_type=OptionType.STRING, min_length=3)
 @slash_option(name="set_length", description="Length of set in minutes", required=True, opt_type=OptionType.INTEGER)
-async def addset(ctx: SlashContext, stage: str, set_time: str, artist: str, set_length: int):
+async def createset(ctx: SlashContext, stage: str, artist: str, set_time: str, set_length: int):
 
 	setadded = False
 	formattedsettime = datetime.strptime(currentyear+currentmonth+set_time,'%y%m%d%H%M')
@@ -406,8 +481,8 @@ async def addset(ctx: SlashContext, stage: str, set_time: str, artist: str, set_
 	#compute set end time
 	formattedendtime = formattedsettime +timedelta(minutes=set_length)
 
-	set_dict = {"artistname": artist, "stagename": stage, "settime": formattedsettime}
-	end_dict = {"artistname": "STGE CLSD", "stagename": stage, "settime": formattedendtime}
+	set_dict = {"artistname": artist, "stagename": stage, "settime": formattedsettime, "addedby": ctx.author}
+	end_dict = {"artistname": "STGE CLSD", "stagename": stage, "settime": formattedendtime, "addedby": ctx.author}
 	for x in setdata:
 		if (x[0]["stagename"]==stage):
 			x.append(set_dict)
@@ -424,26 +499,108 @@ async def addset(ctx: SlashContext, stage: str, set_time: str, artist: str, set_
 		setadded = True
 
 	if (setadded == True):
+		#refresh artistlist
+		await artistlistmaintain()
 		#sort schedule after addition
 		await schedulesorter()
-		await ctx.send(ctx.author.mention + " created a new " + str(set_length) + " minute long **" + artist + "** set at **" + stage + "**, starting at **" + formattedsettime.strftime("%a %b%d %H%ML").upper() + "**. :sparkles::sparkles:")
+		await ctx.send(ctx.author.mention + " created a new " + str(set_length) + " minute long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + "**. :sparkles::sparkles:")
 	else:
 		await ctx.send("Error creating new set.")
 
 
-#addset autocomplete
-@addset.autocomplete("stage")
+#createset stage autocomplete
+@createset.autocomplete("stage")
 async def autocomplete(ctx: AutocompleteContext):
 	choicelist=[]
 	for x in setdata:
-		stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
-		choicelist.append(stage_dict)
-		
-	await ctx.send(choices=choicelist[:])
+		if (ctx.input_text.lower() in x[0]["stagename"].lower()):
+			stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
+			choicelist.append(stage_dict)
 
+	if (len(choicelist)>25):
+		await ctx.send(choices=choicelist[:25])
+	else:
+		await ctx.send(choices=choicelist[:])
+	
+
+#createset artist autocomplete
+@createset.autocomplete("artist")
+async def autocomplete(ctx: AutocompleteContext):
+	choicelist=[]
+	for x in artistlist:		
+		if (ctx.input_text.lower() in x.lower()):
+				artist_dict = {"name": x,"value": x}
+				choicelist.append(artist_dict)
+
+	if (len(choicelist)>25):
+		await ctx.send(choices=choicelist[:25])
+	else:
+		await ctx.send(choices=choicelist[:])
+		
+
+@slash_command(name="rmset", description="Remove a set you created from the schedule")
+@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+@slash_option(name="artist", description="Name of artist", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+@slash_option(name="set_time", description="LOCAL Set time (use DDHHMM)", required=True, opt_type=OptionType.STRING, min_length=6, max_length=6)
+async def rmset(ctx: SlashContext, stage: str, artist: str, set_time: str):
+	global setdata
+	setremoved = False
+	formattedsettime = datetime.strptime(currentyear+currentmonth+set_time,'%y%m%d%H%M')
+
+	#add UTC offset
+	formattedsettime -= timedelta(hours=utcoffset)
+
+	#empty lists for list comprehension
+	setdatacopy=[]
+	for x in setdata:
+		stagecopy=[]
+		for y in x:
+			if (y["stagename"].lower()==stage.lower() and y["artistname"].lower()==artist.lower() and y["settime"]==formattedsettime and y["addedby"]==ctx.author):
+				await ctx.send(":exclamation: " + ctx.author.mention + " removed " + y["artistname"] + "'s " + y["stagename"] + " set at " + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " from the schedule.")
+				setremoved = True
+			else:
+				stagecopy.append(y)
+		setdatacopy.append(stagecopy)
+
+	setdata=setdatacopy[:]
+
+	if (setremoved == False):
+		await ctx.send("Couldn't find any sets with the entered parameters that you created, " + ctx.author.mention + ".")
+	else:
+		#refresh artistlist
+		await artistlistmaintain()
+	
+
+#rmset autocomplete
+@rmset.autocomplete("stage")
+async def autocomplete(ctx: AutocompleteContext):
+	choicelist=[]
+	for x in setdata:
+		if (ctx.input_text.lower() in x[0]["stagename"].lower()):
+			stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
+			choicelist.append(stage_dict)
+
+	if (len(choicelist)>25):
+		await ctx.send(choices=choicelist[:25])
+	else:
+		await ctx.send(choices=choicelist[:])
+
+#rmset artist autocomplete
+@rmset.autocomplete("artist")
+async def autocomplete(ctx: AutocompleteContext):
+	choicelist=[]
+	for x in artistlist:		
+		if (ctx.input_text.lower() in x.lower()):
+				artist_dict = {"name": x,"value": x}
+				choicelist.append(artist_dict)
+
+	if (len(choicelist)>25):
+		await ctx.send(choices=choicelist[:25])
+	else:
+		await ctx.send(choices=choicelist[:])
 
 @slash_command(name="fullschedule", description="List the full schedule for a stage")
-@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=4)
+@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
 async def fullschedule(ctx: SlashContext, stage: str):
 	stagefound = False
 	#step through schedule
@@ -465,9 +622,50 @@ async def fullschedule(ctx: SlashContext, stage: str):
 async def autocomplete(ctx: AutocompleteContext):
 	choicelist=[]
 	for x in setdata:
-		stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
-		choicelist.append(stage_dict)
-		
-	await ctx.send(choices=choicelist[:])
+		if (ctx.input_text.lower() in x[0]["stagename"].lower()):
+			stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
+			choicelist.append(stage_dict)
+
+	if (len(choicelist)>25):
+		await ctx.send(choices=choicelist[:25])
+	else:
+		await ctx.send(choices=choicelist[:])
+
+@slash_command(name="searchsets", description="Find and list all sets for the specified artist")
+@slash_option(name="artist", description="Name of artist", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+async def searchsets(ctx: SlashContext, artist: str):
+	artistfound = False
+	#find artist
+	for x in setdata:
+		for y in x:
+			if (artist.lower() in y["artistname"].lower()):
+				listcompose = "## All " + artist + " Sets:"
+				artistfound=True
+
+	if (artistfound==True):
+		#step through schedule
+		for x in setdata:
+			for y in x:
+				if (artist.lower() in y["artistname"].lower()):
+					listcompose += "\n- " + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + y["artistname"] + " - " + y["stagename"]
+
+		await ctx.send(listcompose)
+
+	else:
+		await ctx.send("Couldn't find any sets with '" + artist + "' in the artist name.")
+
+#searchsets artist autocomplete
+@searchsets.autocomplete("artist")
+async def autocomplete(ctx: AutocompleteContext):
+	choicelist=[]
+	for x in artistlist:		
+		if (ctx.input_text.lower() in x.lower()):
+				artist_dict = {"name": x,"value": x}
+				choicelist.append(artist_dict)
+
+	if (len(choicelist)>25):
+		await ctx.send(choices=choicelist[:25])
+	else:
+		await ctx.send(choices=choicelist[:])
 	
 bot.start(token)
