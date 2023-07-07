@@ -179,7 +179,7 @@ async def help(ctx: SlashContext):
 		cls_log.info(str(ctx.author) + " used /help")
 
 	except:
-		await ctx.send("Error running command.", ephemeral=True, ephemeral=True)
+		await ctx.send("Error running command.", ephemeral=True)
 
 @slash_command(name="liststarredsets", description="List all starred sets")
 async def liststarredsets(ctx: SlashContext):
