@@ -179,7 +179,7 @@ async def help(ctx: SlashContext):
 		cls_log.info(str(ctx.author) + " used /help")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True, ephemeral=True)
 
 @slash_command(name="liststarredsets", description="List all starred sets")
 async def liststarredsets(ctx: SlashContext):
@@ -215,7 +215,7 @@ async def liststarredsets(ctx: SlashContext):
 		cls_log.info(str(ctx.author) + " used /liststarredsets")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 
 @slash_command(name="addremarks", description="Add additional remarks")
 @slash_option(name="remarks", description="Remarks text", required=True, opt_type=OptionType.STRING, min_length=2)
@@ -230,7 +230,7 @@ async def addremarks(ctx: SlashContext, remarks: str):
 		cls_log.info(str(ctx.author) + " used /addremarks")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 
 @slash_command(name="clearremarks", description="Clear all of your remarks")
 async def clearremarks(ctx: SlashContext):
@@ -254,7 +254,7 @@ async def clearremarks(ctx: SlashContext):
 		cls_log.info(str(ctx.author) + " used /clearremarks")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 	
 
 @slash_command(name="star", description="Star a set and create a new alert")
@@ -298,7 +298,7 @@ async def star(ctx: SlashContext, artist: str, stage: str='', alert_interval: in
 		cls_log.info(str(ctx.author) + " used /star")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 
 #star artist autocomplete
 @star.autocomplete("artist")
@@ -360,7 +360,7 @@ async def unstar(ctx: SlashContext, artist: str, stage: str=""):
 		cls_log.info(str(ctx.author) + " used /unstar")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 
 #unstar artist autocomplete
 @unstar.autocomplete("artist")
@@ -502,7 +502,7 @@ async def atis(ctx: SlashContext, zulu: bool = False):
 		cls_log.info(str(ctx.author) + " used /atis")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 
 
 @slash_command(name="taf", description="Show the TAF, including forecast weather and future sets")
@@ -580,7 +580,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 		cls_log.info(str(ctx.author) + " used /taf")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 
 @slash_command(name="createset", description="Create a new set and add it to the schedule")
 @slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
@@ -635,7 +635,7 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 		cls_log.info(str(ctx.author) + " used /createset")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 
 
 #createset stage autocomplete
@@ -705,7 +705,7 @@ async def removeset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 		cls_log.info(str(ctx.author) + " used /removeset")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 	
 
 #removeset autocomplete
@@ -759,7 +759,7 @@ async def fullschedule(ctx: SlashContext, stage: str):
 		cls_log.info(str(ctx.author) + " used /fullschedule")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 
 #fullschedule autocomplete
 @fullschedule.autocomplete("stage")
@@ -803,7 +803,7 @@ async def searchsets(ctx: SlashContext, artist: str):
 		cls_log.info(str(ctx.author) + " used /searchsets")
 
 	except:
-		await ctx.send("Error running command.")
+		await ctx.send("Error running command.", ephemeral=True)
 
 #searchsets artist autocomplete
 @searchsets.autocomplete("artist")
