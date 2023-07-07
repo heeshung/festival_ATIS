@@ -149,13 +149,14 @@ async def on_ready():
 
 @listen()
 async def on_message_create(event):
-	if (("what song is this" in event.message.content.lower() or "what is this song" in event.message.content.lower()) and event.message.guild == None):
-		await event.message.channel.send(event.message.author.mention + " It's Darude - Sandstorm.")
-	elif (event.message.guild==None and event.message.author == bot.owner):
-		await channel.send(event.message.content)
-
-	#log
-	cls_log.info("DM - " + str(event.message.author) + ": " + event.message.content)
+	if (event.message.guild == None):
+		if (("what song is this" in event.message.content.lower() or "what is this song" in event.message.content.lower())):
+			await event.message.channel.send(event.message.author.mention + " It's Darude - Sandstorm.")
+		elif (event.message.author == bot.owner):
+			await channel.send(event.message.content)
+			
+		#only log if DM
+		cls_log.info("DM - " + str(event.message.author) + ": " + event.message.content)
 
 @slash_command(name="help", description="Show the help menu with all available commands")
 async def help(ctx: SlashContext):
