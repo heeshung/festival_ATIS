@@ -118,17 +118,17 @@ async def alerter():
 			#if there were triggered alerts
 			if (len(alertauthors)>0):
 				if ((set["settime"]-currentdatetime).total_seconds()/60 < 2):
-					messagecompose=("ATTENTION ALL AIRCRAFT @here: **" + set["artistname"] + "** BEGINS **NOW** AT **" + set["stagename"] + "** (starred by")
+					messagecompose=("ATTENTION ALL AIRCRAFT: **" + set["artistname"] + "** BEGINS **NOW** AT **" + set["stagename"] + "** (starred by")
 					for x in alertauthors:
 						messagecompose+=" "+str(x)
 					messagecompose+=")."
-					await channel.send(messagecompose)
+					await channel.send(messagecompose, silent=True)
 				else:
-					messagecompose=("ATTENTION ALL AIRCRAFT @here: **" + set["artistname"] + "** BEGINS IN **" + str(math.ceil((set["settime"]-currentdatetime).total_seconds()/60)) + " MIN** AT **" + set["stagename"] + "** (starred by")
+					messagecompose=("ATTENTION ALL AIRCRAFT: **" + set["artistname"] + "** BEGINS IN **" + str(math.ceil((set["settime"]-currentdatetime).total_seconds()/60)) + " MIN** AT **" + set["stagename"] + "** (starred by")
 					for x in alertauthors:
 						messagecompose+=" "+str(x)
 					messagecompose+=")."
-					await channel.send(messagecompose)
+					await channel.send(messagecompose, silent=True)
 
 @listen()
 async def on_ready():
@@ -149,18 +149,18 @@ async def on_message_create(event):
 @slash_command(name="help", description="Show the help menu with all available commands")
 async def help(ctx: SlashContext):
 	await ctx.send("## Commands\n>>>  \
-- **/addalert <artist>** <stage> <alert_interval>: adds artists that match search term into alert list with respective alert interval (default is 15 minutes)\n \
 - **/addremarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n \
-- **/alertlist**: replies with full alert list\n \
-- **/atis** <zulu>: replies with the area ATIS, current artists on stage, and time remaining in sets (set zulu flag to true for Zulu times)\n \
+- **/atis** <zulu>: replies with the area ATIS, current artists on stage, and time remaining in sets; set <zulu> to True for Zulu times (default is False)\n \
 - **/clearremarks**: clears all of your remarks\n \
-- **/createset <stage> <set_time> <artist> <set_length> <does_stage_close>**: create a new set and it to the schedule; set <does_stage_close> to True if stage closes after set\n \
+- **/createset <stage> <artist> <set_start_time> <set_length> <does_stage_close>**: creates a new set and it to the schedule; set <does_stage_close> to True if stage closes after set\n \
 - **/fullschedule <stage>**: replies with the full schedule for the specified stage\n \
 - **/help**: replies with this help message\n \
-- **/rmalert <artist>** <stage>: removes artists that match seach term from alert list\n \
-- **/rmset <stage> <set_time> <artist>**: remove a set you created from the schedule\n \
+- **/liststarredsets**: replies with list of all starred sets, including who starred the set and alert intervals\n \
+- **/rmset <stage> <artist> <set_start_time>**: removes a set you created from the schedule\n \
 - **/searchsets <artist>**: replies with a list of all sets for the specified artist\n \
-- **/taf** <zulu>: replies with the area TAF, upcoming sets and times by stage (set zulu flag to true for Zulu times) \n\n \
+- **/star <artist>** <stage> <alert_interval>: stars a set and sets up an alert with the specified alert interval (default is 15 minutes)\n \
+- **/taf** <zulu>: replies with the area TAF, upcoming sets and times by stage; set <zulu> to True for Zulu times (default is False)\n \
+- **/unstar <artist>** <stage>: unstars all sets with the specified artist and stage\n\n \
 NOTE: **bold** flags are required", ephemeral=True)
 
 @slash_command(name="liststarredsets", description="List all starred sets")
@@ -247,12 +247,14 @@ async def star(ctx: SlashContext, artist: str, stage: str='', alert_interval: in
 				else:
 					alert_dict = {"author": ctx.author, "alertinterval": alert_interval, "alerted": False}
 					a["alerts"].append(alert_dict)
+					
 					matchfound = True
 					await ctx.send("You starred " + a["artistname"] + "'s " + a["stagename"] + " set at " + (a["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " (T-" + str(alert_interval) + "). :white_check_mark:", ephemeral=True)
 			
 	#if no match is found
 	if (matchfound == False):
 		await ctx.send("Couldn't find any sets with '"+artist+"' in the artist name that are not already starred with that alert interval or have not already begun.", ephemeral=True)
+
 
 
 #star artist autocomplete
@@ -288,23 +290,27 @@ async def autocomplete(ctx: AutocompleteContext):
 @slash_option(name="stage", description="Stage name", required=False, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
 async def unstar(ctx: SlashContext, artist: str, stage: str=""):
 	matchfound = False
-
 	#for each stage
 	for x in setdata:
 		#for each set
 		for y in x:
 			alertscopy = []
-			#for each alert in set
-			for z in y["alerts"]:
-				if (artist.lower() in y["artistname"].lower() and stage.lower() in y["stagename"].lower() and ctx.author == z["author"]):
-					await ctx.send("You unstarred " + y["artistname"] + "'s " + y["stagename"] + " set at " + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " (T-" + str(z["alertinterval"]) + "). :x:", ephemeral=True)
-					matchfound = True
-				else:
-					alertscopy.append(z)
-			y["alerts"] = alertscopy[:]
+			#if artist matches and stage matches
+			if (artist.lower() in y["artistname"].lower() and stage.lower() in y["stagename"].lower()):
+				#for each alert in set
+				for z in y["alerts"]:
+					#if requestor is author of alert
+					if (ctx.author == z["author"]):
+						matchfound = True
+					else:
+						alertscopy.append(z)
+				#if matches were found
+				if (len(alertscopy)<len(y["alerts"])):
+					await ctx.send("You unstarred " + y["artistname"] + "'s " + y["stagename"] + " set at " + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + ". :x:", ephemeral=True)
+				y["alerts"] = alertscopy[:]
 
 	if (matchfound == False):
-		await ctx.send("Couldn't find any starred sets with the entered parameters that you created, " + ctx.author.mention + ".", ephemeral=True)
+		await ctx.send("Couldn't find any starred sets with the entered parameters that you created.", ephemeral=True)
 
 #unstar artist autocomplete
 @unstar.autocomplete("artist")
@@ -470,6 +476,9 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 				#check if current artist is last
 				if (idx == len(setdata[stageindex])-1):
 					nextartist=setdata[stageindex][idx]["artistname"]
+					#add star if next artist is starred
+					if (len(setdata[stageindex][idx]["alerts"]) > 0):
+						nextartist+=":small_blue_diamond:"
 					nextsettime=setdata[stageindex][idx]["settime"]
 					if (zulu == True):
 						combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
@@ -478,6 +487,9 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 					break
 				else:
 					nextartist=setdata[stageindex][idx+1]["artistname"]
+					#add star if next artist is starred
+					if (len(setdata[stageindex][idx+1]["alerts"]) > 0):
+						nextartist+=":small_blue_diamond:"
 					nextsettime=setdata[stageindex][idx+1]["settime"]
 					if (zulu == True):
 						combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
@@ -487,6 +499,9 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 			#if current time is before first set
 			elif (currentdatetime < setdata[stageindex][0]["settime"]):
 				nextartist = setdata[stageindex][0]["artistname"]
+				#add star if next artist is starred
+				if (len(setdata[stageindex][0]["alerts"]) > 0):
+					nextartist+=":small_blue_diamond:"
 				nextsettime = setdata[stageindex][0]["settime"]
 				if (zulu == True):
 					combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
@@ -506,13 +521,13 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 @slash_command(name="createset", description="Create a new set and add it to the schedule")
 @slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
 @slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
-@slash_option(name="set_time", description="LOCAL Set time (use DDHHMM)", required=True, opt_type=OptionType.STRING, min_length=6, max_length=6)
+@slash_option(name="set_start_time", description="LOCAL set starting time (use DDHHMM)", required=True, opt_type=OptionType.STRING, min_length=6, max_length=6)
 @slash_option(name="set_length", description="Length of set in minutes", required=True, opt_type=OptionType.INTEGER)
 @slash_option(name="does_stage_close", description="Denotes if stage closes after added set", required=True, opt_type=OptionType.BOOLEAN)
-async def createset(ctx: SlashContext, stage: str, artist: str, set_time: str, set_length: int, does_stage_close: bool):
+async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: str, set_length: int, does_stage_close: bool):
 
 	setadded = False
-	formattedsettime = datetime.strptime(currentyear+currentmonth+set_time,'%y%m%d%H%M')
+	formattedsettime = datetime.strptime(currentyear+currentmonth+set_start_time,'%y%m%d%H%M')
 	
 
 	#add UTC offset
@@ -520,8 +535,11 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_time: str, s
 	#compute set end time
 	formattedendtime = formattedsettime +timedelta(minutes=set_length)
 
-	set_dict = {"artistname": artist, "stagename": stage, "settime": formattedsettime, "addedby": ctx.author}
-	end_dict = {"artistname": "STGE CLSD", "stagename": stage, "settime": formattedendtime, "addedby": ctx.author}
+	set_alerts_list = []
+	end_alerts_list = []
+
+	set_dict = {"artistname": artist, "stagename": stage, "settime": formattedsettime, "addedby": ctx.author, "alerts": set_alerts_list}
+	end_dict = {"artistname": "STGE CLSD", "stagename": stage, "settime": formattedendtime, "addedby": ctx.author, "alerts": end_alerts_list}
 	for x in setdata:
 		if (x[0]["stagename"]==stage):
 			x.append(set_dict)
@@ -582,11 +600,11 @@ async def autocomplete(ctx: AutocompleteContext):
 @slash_command(name="rmset", description="Remove a set you created from the schedule")
 @slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
 @slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
-@slash_option(name="set_time", description="LOCAL Set time (use DDHHMM)", required=True, opt_type=OptionType.STRING, min_length=6, max_length=6)
-async def rmset(ctx: SlashContext, stage: str, artist: str, set_time: str):
+@slash_option(name="set_start_time", description="LOCAL set starting time (use DDHHMM)", required=True, opt_type=OptionType.STRING, min_length=6, max_length=6)
+async def rmset(ctx: SlashContext, stage: str, artist: str, set_start_time: str):
 	global setdata
 	setremoved = False
-	formattedsettime = datetime.strptime(currentyear+currentmonth+set_time,'%y%m%d%H%M')
+	formattedsettime = datetime.strptime(currentyear+currentmonth+set_start_time,'%y%m%d%H%M')
 
 	#add UTC offset
 	formattedsettime -= timedelta(hours=utcoffset)
@@ -606,7 +624,7 @@ async def rmset(ctx: SlashContext, stage: str, artist: str, set_time: str):
 	setdata=setdatacopy[:]
 
 	if (setremoved == False):
-		await ctx.send("Couldn't find any sets with the entered parameters that you created, " + ctx.author.mention + ".", ephemeral=True)
+		await ctx.send("Couldn't find any sets with the entered parameters that you created.", ephemeral=True)
 	else:
 		#refresh artistlist
 		await artistlistmaintain()
@@ -656,7 +674,7 @@ async def fullschedule(ctx: SlashContext, stage: str):
 
 	#return error if stage isn't found
 	if (stagefound == False):
-		await ctx.send("Couldn't find '"+stage+"' in list of stages.", ephemeral=True)
+		await ctx.send("Couldn't find any stages with '"+stage+"' in the stage name.", ephemeral=True)
 
 #fullschedule autocomplete
 @fullschedule.autocomplete("stage")
