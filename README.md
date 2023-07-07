@@ -15,6 +15,8 @@ Features
 - Autocomplete-enabled flags
 - Ability to star and create individual alerts for sets
 - Ability to search for sets by artist
+- Logging support
+- Error handling
 
 
 ## Schedule Format
