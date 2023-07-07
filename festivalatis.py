@@ -126,7 +126,7 @@ async def on_ready():
 	global channel
 	channel = await bot.fetch_channel(channel_id=channelid)
 	await scheduleparser()
-	#await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z")
+	await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z", silent=True)
 	await schedulesorter()
 	alerter.start()
 
