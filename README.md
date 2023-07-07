@@ -12,8 +12,9 @@ Features
 - Modify schedules on-the-fly
 - Automatic set sorting
 - Official METAR/TAF output from NOAA
-- Individualized additional remarks
 - Autocomplete-enabled flags
+- Ability to star and create individual alerts for sets
+- Ability to search for sets by artist
 
 
 ## Schedule Format
