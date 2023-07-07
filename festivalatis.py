@@ -403,7 +403,7 @@ async def atis(ctx: SlashContext, zulu: bool = False):
 									combined += timeremaintext[x-1]
 
 
-	await ctx.send(combined)
+	await ctx.send(combined, silent=True)
 
 
 @slash_command(name="taf", description="Show the TAF, including forecast weather and future sets")
@@ -465,7 +465,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 		for j in additionalrmks:
 			combined+="\n- "+j["remarktext"] + " (" + str(j["author"]) + ")"
 
-	await ctx.send(combined)
+	await ctx.send(combined, silent=True)
 
 @slash_command(name="createset", description="Create a new set and add it to the schedule")
 @slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
