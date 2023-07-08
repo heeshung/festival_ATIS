@@ -433,10 +433,15 @@ async def atis(ctx: SlashContext):
 						#get minutes remaining in set
 						timeremain = (setdata[stageindex][idx+1]["settime"]-currentdatetime).total_seconds()
 						timeremain = math.ceil(timeremain/60)
-						if (timeremain>60):
-							timesuffix = str(int(timeremain/60)) + " hr " + str(int(timeremain%60)) + " min"
-						else:
-							timesuffix = str(timeremain) + " min"
+						timesuffix = ""
+						#if timeremain is greater than a day
+						if (timeremain/60 > 24):
+							timesuffix = str(int(timeremain/60/24)) + " d "
+						#if timeremain is greater than or equal to an hour after subtracting days
+						if (timeremain/60%24>=1):
+							timesuffix += str(int(timeremain/60%24)) + " hr "
+						#add minutes
+						timesuffix += str(int(timeremain%60)) + " min"
 						timeremaincompose=" (" + nextartist + " in " + timesuffix + ")"
 					#if current artist is last
 					else:
@@ -450,10 +455,15 @@ async def atis(ctx: SlashContext):
 				#get minutes before set
 				timeremain = (setdata[stageindex][0]["settime"]-currentdatetime).total_seconds()
 				timeremain = math.ceil(timeremain/60)
-				if (timeremain>60):
-					timesuffix = str(int(timeremain/60)) + " hr " + str(int(timeremain%60)) + " min"
-				else:
-					timesuffix = str(timeremain) + " min"
+				timesuffix = ""
+				#if timeremain is greater than a day
+				if (timeremain/60 > 24):
+					timesuffix = str(int(timeremain/60/24)) + " d "
+				#if timeremain is greater than or equal to an hour after subtracting days
+				if (timeremain/60%24>=1):
+					timesuffix += str(int(timeremain/60%24)) + " hr "
+				#add minutes
+				timesuffix += str(int(timeremain%60)) + " min"
 				timeremaincompose=" (" + nextartist + " in " + timesuffix + ")"
 				currentartist="STGE CLSD"
 
