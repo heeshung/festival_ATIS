@@ -162,20 +162,19 @@ async def on_message_create(event):
 @slash_command(name="help", description="Show the help menu with all available commands")
 async def help(ctx: SlashContext):
 	try:
-		await ctx.send("## Commands\n>>>  \
-	- **/addremarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n \
-	- **/atis** <zulu>: replies with the area ATIS, current artists on stage, and time remaining in sets; set <zulu> to True for Zulu times (default is False)\n \
-	- **/clearremarks**: clears all of your remarks\n \
-	- **/createset <stage> <artist> <set_start_time> <set_length> <does_stage_close>**: creates a new set and it to the schedule; set <does_stage_close> to True if stage closes after set\n \
-	- **/fullschedule <stage>**: replies with the full schedule for the specified stage\n \
-	- **/help**: replies with this help message\n \
-	- **/liststarredsets**: replies with list of all starred sets, including who starred the set and alert intervals\n \
-	- **/removeset <stage> <artist> <set_start_time>**: removes a set you created from the schedule\n \
-	- **/searchsets <artist>**: replies with a list of all sets for the specified artist\n \
-	- **/star <artist>** <stage> <alert_interval>: stars a set and sets up an alert with the specified alert interval (default is 15 minutes)\n \
-	- **/taf** <zulu>: replies with the area TAF, upcoming sets and times by stage; set <zulu> to True for Zulu times (default is False)\n \
-	- **/unstar <artist>** <stage>: unstars all sets with the specified artist and stage\n\n \
-	NOTES:\n- **bold** flags are required\n- :small_blue_diamond: denotes starred set", ephemeral=True)
+		await ctx.send("## Commands\n\
+	> - **/addremarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n\
+	> - **/atis**: replies with the area ATIS, current artists on stage, and time remaining in sets\n\
+	> - **/clearremarks**: clears all of your remarks\n\
+	> - **/createset <stage> <artist> <set_start_time> <set_length> <does_stage_close>**: creates a new set and it to the schedule; set <does_stage_close> to True if stage closes after set\n\
+	> - **/fullschedule <stage>**: replies with the full schedule for the specified stage\n\
+	> - **/help**: replies with this help message\n\
+	> - **/liststarredsets**: replies with list of all starred sets, including who starred the set and alert intervals\n\
+	> - **/removeset <stage> <artist> <set_start_time>**: removes a set you created from the schedule\n\
+	> - **/searchsets <artist>**: replies with a list of all sets for the specified artist\n\
+	> - **/star <artist>** <stage> <alert_interval>: stars a set and sets up an alert with the specified alert interval (default is 15 minutes)\n\
+	> - **/taf** <zulu>: replies with the area TAF, upcoming sets and times by stage; set <zulu> to True for Zulu times (default is False)\n\
+	> - **/unstar <artist>** <stage>: unstars all sets with the specified artist and stage\n\n### **Notes**:\n- **bold** flags are required\n- :small_blue_diamond: denotes starred set", ephemeral=True)
 		
 		#log
 		cls_log.info(str(ctx.author) + " used /help")
@@ -393,8 +392,7 @@ async def autocomplete(ctx: AutocompleteContext):
 		await ctx.send(choices=choicelist[:])
 
 @slash_command(name="atis", description="Show the ATIS, including current weather and sets")
-@slash_option(name="zulu", description="Zulu flag (default = False)", required=False, opt_type=OptionType.BOOLEAN)
-async def atis(ctx: SlashContext, zulu: bool = False):
+async def atis(ctx: SlashContext):
 	try:
 
 		global currentatisindex
@@ -480,22 +478,13 @@ async def atis(ctx: SlashContext, zulu: bool = False):
 			currentatisindex=(currentatisindex+1)%26
 			currentatistext=atiscompare.copy()
 
-
-		if (zulu == True):
-			combined = eventvenuename + " ATIS INFO " + atisletters[currentatisindex] + " " + currentdatetime.strftime("%d%H%M**Z** ") + currentatistext[0]
-			for x in range(1,len(currentatistext)):
-				combined += currentatistext[x]
-				#add time remaining text
-				if (x < len(currentatistext)-1):
-					combined += timeremaintext[x-1]
-
-		else:
-			combined = eventvenuename + " ATIS INFO " + atisletters[currentatisindex] + " " + (currentdatetime+timedelta(hours=utcoffset)).strftime("%d%H%M**L** **(%a %b%d %H%ML)** ").upper() + currentatistext[0]
-			for x in range(1,len(currentatistext)):
-								combined += currentatistext[x]
-								#add time remaining text
-								if (x < len(currentatistext)-1):
-										combined += timeremaintext[x-1]
+		#compose atis
+		combined = eventvenuename + " ATIS INFO " + atisletters[currentatisindex] + " " + currentdatetime.strftime("%d%H%MZ ") + (currentdatetime+timedelta(hours=utcoffset)).strftime("**(%a %b%d %H%ML)** ").upper() + currentatistext[0]
+		for x in range(1,len(currentatistext)):
+							combined += currentatistext[x]
+							#add time remaining text
+							if (x < len(currentatistext)-1):
+									combined += timeremaintext[x-1]
 
 
 		await ctx.send(combined, silent=True)
