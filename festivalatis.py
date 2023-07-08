@@ -133,17 +133,17 @@ async def alerter():
 			#if there were triggered alerts
 			if (len(alertauthors)>0):
 				if ((set["settime"]-currentdatetime).total_seconds()/60 < 2):
-					messagecompose=("ATTENTION ALL AIRCRAFT: **" + set["artistname"] + "** BEGINS **NOW** AT **" + set["stagename"] + "** (starred by")
+					messagecompose=("ATTENTION ALL AIRCRAFT @here: **" + set["artistname"] + "** BEGINS **NOW** AT **" + set["stagename"] + "** (starred by")
 					for x in alertauthors:
 						messagecompose+=" "+str(x)
-					messagecompose+=")."
-					await channel.send(messagecompose, silent=True)
+					messagecompose+="). :POGSLIDE::POGSLIDE:"
+					await channel.send(messagecompose)
 				else:
-					messagecompose=("ATTENTION ALL AIRCRAFT: **" + set["artistname"] + "** BEGINS IN **" + str(math.ceil((set["settime"]-currentdatetime).total_seconds()/60)) + " MIN** AT **" + set["stagename"] + "** (starred by")
+					messagecompose=("ATTENTION ALL AIRCRAFT @here: **" + set["artistname"] + "** BEGINS IN **" + str(math.ceil((set["settime"]-currentdatetime).total_seconds()/60)) + " MIN** AT **" + set["stagename"] + "** (starred by")
 					for x in alertauthors:
 						messagecompose+=" "+str(x)
-					messagecompose+=")."
-					await channel.send(messagecompose, silent=True)
+					messagecompose+="). :peepoDJ::pepodance:"
+					await channel.send(messagecompose)
 
 @listen()
 async def on_ready():
