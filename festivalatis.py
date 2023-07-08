@@ -149,7 +149,8 @@ async def on_ready():
 
 @listen()
 async def on_message_create(event):
-	if (event.message.guild == None):
+	#if DM and author is not bot itself
+	if (event.message.guild == None and event.message.author != bot.user):
 		if (("what song is this" in event.message.content.lower() or "what is this song" in event.message.content.lower())):
 			await event.message.channel.send(event.message.author.mention + " It's Darude - Sandstorm.")
 		elif (event.message.author == bot.owner):
@@ -174,7 +175,7 @@ async def help(ctx: SlashContext):
 	- **/star <artist>** <stage> <alert_interval>: stars a set and sets up an alert with the specified alert interval (default is 15 minutes)\n \
 	- **/taf** <zulu>: replies with the area TAF, upcoming sets and times by stage; set <zulu> to True for Zulu times (default is False)\n \
 	- **/unstar <artist>** <stage>: unstars all sets with the specified artist and stage\n\n \
-	NOTE: **bold** flags are required", ephemeral=True)
+	NOTES:\n- **bold** flags are required\n- :small_blue_diamond: denotes starred set", ephemeral=True)
 		
 		#log
 		cls_log.info(str(ctx.author) + " used /help")
@@ -424,13 +425,13 @@ async def atis(ctx: SlashContext, zulu: bool = False):
 					currentartist=setdata[stageindex][idx]["artistname"]
 					#add star if currentartist is starred
 					if (len(setdata[stageindex][idx]["alerts"]) > 0):
-						currentartist+=":small_blue_diamond:"
+						currentartist=currentartist+":small_blue_diamond:"
 					#check if current artist is not last
 					if (idx < len(setdata[stageindex])-1):
 						nextartist = setdata[stageindex][idx+1]["artistname"]
 						#add star if next artist is starred
 						if (len(setdata[stageindex][idx+1]["alerts"]) > 0):
-							nextartist+=":small_blue_diamond:"
+							nextartist=nextartist+":small_blue_diamond:"
 						#get minutes remaining in set
 						timeremain = (setdata[stageindex][idx+1]["settime"]-currentdatetime).total_seconds()
 						timeremain = math.ceil(timeremain/60)
@@ -447,7 +448,7 @@ async def atis(ctx: SlashContext, zulu: bool = False):
 				nextartist = setdata[stageindex][0]["artistname"]
 				#add star if next artist is starred
 				if (len(setdata[stageindex][0]["alerts"]) > 0):
-					nextartist+=":small_blue_diamond:"
+					nextartist=nextartist+":small_blue_diamond:"
 				#get minutes before set
 				timeremain = (setdata[stageindex][0]["settime"]-currentdatetime).total_seconds()
 				timeremain = math.ceil(timeremain/60)
@@ -537,7 +538,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 						nextartist=setdata[stageindex][idx]["artistname"]
 						#add star if next artist is starred
 						if (len(setdata[stageindex][idx]["alerts"]) > 0):
-							nextartist+=":small_blue_diamond:"
+							nextartist=nextartist+":small_blue_diamond:"
 						nextsettime=setdata[stageindex][idx]["settime"]
 						if (zulu == True):
 							combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
@@ -548,7 +549,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 						nextartist=setdata[stageindex][idx+1]["artistname"]
 						#add star if next artist is starred
 						if (len(setdata[stageindex][idx+1]["alerts"]) > 0):
-							nextartist+=":small_blue_diamond:"
+							nextartist=nextartist+":small_blue_diamond:"
 						nextsettime=setdata[stageindex][idx+1]["settime"]
 						if (zulu == True):
 							combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
@@ -560,7 +561,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 					nextartist = setdata[stageindex][0]["artistname"]
 					#add star if next artist is starred
 					if (len(setdata[stageindex][0]["alerts"]) > 0):
-						nextartist+=":small_blue_diamond:"
+						nextartist=nextartist+":small_blue_diamond:"
 					nextsettime = setdata[stageindex][0]["settime"]
 					if (zulu == True):
 						combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
@@ -749,6 +750,9 @@ async def fullschedule(ctx: SlashContext, stage: str):
 				stagefound = True
 				for y in x:
 					listcompose+="\n" + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + y["artistname"]
+					#add star if set is starred
+					if (len(y["alerts"])>0):
+						listcompose += ":small_blue_diamond:"
 				await ctx.send(listcompose, ephemeral=True)
 				break
 
@@ -794,6 +798,9 @@ async def searchsets(ctx: SlashContext, artist: str):
 				for y in x:
 					if (artist.lower() in y["artistname"].lower()):
 						listcompose += "\n- " + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + y["artistname"] + " - " + y["stagename"]
+						#add star if set is starred
+						if (len(y["alerts"])>0):
+							listcompose += ":small_blue_diamond:"
 
 			await ctx.send(listcompose, ephemeral=True)
 
