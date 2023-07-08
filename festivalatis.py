@@ -166,7 +166,7 @@ async def help(ctx: SlashContext):
 	> - **/addremarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n\
 	> - **/atis**: replies with the area ATIS, current artists on stage, and time remaining in sets\n\
 	> - **/clearremarks**: clears all of your remarks\n\
-	> - **/createset <stage> <artist> <set_start_time> <set_length> <does_stage_close>**: creates a new set and it to the schedule; set <does_stage_close> to True if stage closes after set\n\
+	> - **/createset <stage> <artist> <set_start_time> <set_length> <does_stage_close>**: creates a new set and it to the schedule; set <does_stage_close> to True if there is no set immediately following the created set\n\
 	> - **/fullschedule <stage>**: replies with the full schedule for the specified stage\n\
 	> - **/help**: replies with this help message\n\
 	> - **/liststarredsets**: replies with list of all starred sets, including who starred the set and alert intervals\n\
@@ -593,6 +593,7 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 	try:
 
 		setadded = False
+		setcollision = False
 		formattedsettime = datetime.strptime(currentyear+currentmonth+set_start_time,'%y%m%d%H%M')
 		
 
@@ -608,6 +609,13 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 		end_dict = {"artistname": "STGE CLSD", "stagename": stage, "settime": formattedendtime, "addedby": ctx.author, "alerts": end_alerts_list}
 		for x in setdata:
 			if (x[0]["stagename"]==stage):
+				#check if set at that time already exists
+				for y in x:
+					if (y["settime"]==formattedsettime):
+						setcollision = True
+				#stop if setcollision was detected
+				if (setcollision == True):
+					break
 				x.append(set_dict)
 				#add STGE CLSD if stage closes
 				if (does_stage_close==True):
@@ -616,7 +624,7 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 				break
 
 		#if stage not already in list
-		if (setadded == False):	
+		if (setadded == False and setcollision == False):
 			newsetlist=[]
 			newsetlist.append(set_dict)
 			newsetlist.append(end_dict)
@@ -630,7 +638,12 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 			await schedulesorter()
 			await ctx.send(ctx.author.mention + " created a new " + str(set_length) + " min long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + "**. :sparkles::sparkles:")
 		else:
-			await ctx.send("Error creating new set.", ephemeral=True)
+			errorcompose = ""
+			if (setcollision == True):
+				errorcompose += ":exclamation: Another set already exists at **" + stage + "** at **" + (formattedsettime+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + "**"
+			else:
+				errorcompose += "Error creating new set."
+			await ctx.send(errorcompose, ephemeral=True)
 
 		#log
 		cls_log.info(str(ctx.author) + " used /createset")
