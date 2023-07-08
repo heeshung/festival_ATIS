@@ -99,9 +99,16 @@ async def schedulesorter():
 	global setdata
 	#sort schedule data
 	sortedsetdata=[]
-	for stagedict in setdata:
-		sortedstage=sorted(stagedict, key=lambda d: d["settime"])
-		sortedsetdata.append(sortedstage)
+	for stage in setdata:
+		#check if stage has any sets
+		stagehassets=False
+		for set in stage:
+			if (set["artistname"]!="STGE CLSD"):
+				stagehassets=True
+				break
+		if (stagehassets==True):
+			sortedstage=sorted(stage, key=lambda d: d["settime"])
+			sortedsetdata.append(sortedstage)
 	setdata=sortedsetdata[:]
 
 @Task.create(IntervalTrigger(seconds=20))
@@ -143,9 +150,9 @@ async def on_ready():
 	global channel
 	channel = await bot.fetch_channel(channel_id=channelid)
 	await scheduleparser()
-	await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z", silent=True)
 	await schedulesorter()
 	alerter.start()
+	await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z", silent=True)
 
 @listen()
 async def on_message_create(event):
@@ -166,11 +173,11 @@ async def help(ctx: SlashContext):
 	> - **/addremarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n\
 	> - **/atis**: replies with the area ATIS, current artists on stage, and time remaining in sets\n\
 	> - **/clearremarks**: clears all of your remarks\n\
-	> - **/createset <stage> <artist> <set_start_time> <set_length> <does_stage_close>**: creates a new set and it to the schedule; set <does_stage_close> to True if there is no set immediately following the created set\n\
+	> - **/createset <stage> <artist> <set_start_time> <set_length> <does_stage_close>**: creates a new set and adds it to the schedule; set <does_stage_close> to True if there is no set immediately following the created set\n\
 	> - **/fullschedule <stage>**: replies with the full schedule for the specified stage\n\
 	> - **/help**: replies with this help message\n\
 	> - **/liststarredsets**: replies with list of all starred sets, including who starred the set and alert intervals\n\
-	> - **/removeset <stage> <artist> <set_start_time>**: removes a set you created from the schedule\n\
+	> - **/removeset <stage> <artist>**: removes all sets with the specified stage and artist that you created from the schedule\n\
 	> - **/searchsets <artist>**: replies with a list of all sets for the specified artist\n\
 	> - **/star <artist>** <stage> <alert_interval>: stars a set and sets up an alert with the specified alert interval (default is 15 minutes)\n\
 	> - **/taf** <zulu>: replies with the area TAF, upcoming sets and times by stage; set <zulu> to True for Zulu times (default is False)\n\
@@ -225,7 +232,7 @@ async def addremarks(ctx: SlashContext, remarks: str):
 		global additionalrmks
 		remarks_dict={"remarktext": remarks, "author": ctx.author}
 		additionalrmks.append(remarks_dict)
-		await ctx.send("'" + remarks + "'added to the additional remarks.", ephemeral=True)
+		await ctx.send("'" + remarks + "' added to the additional remarks.", ephemeral=True)
 
 		#log
 		cls_log.info(str(ctx.author) + " used /addremarks")
@@ -259,8 +266,8 @@ async def clearremarks(ctx: SlashContext):
 	
 
 @slash_command(name="star", description="Star a set and create a new alert")
-@slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
-@slash_option(name="stage", description="Stage name", required=False, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+@slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
+@slash_option(name="stage", description="Stage name", required=False, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
 @slash_option(name="alert_interval", description="Number of minutes prior to set to be alerted (default = 15)", required=False, opt_type=OptionType.INTEGER, min_value=1)
 async def star(ctx: SlashContext, artist: str, stage: str='', alert_interval: int = 15):
 	try:
@@ -330,8 +337,8 @@ async def autocomplete(ctx: AutocompleteContext):
 		await ctx.send(choices=choicelist[:])
 
 @slash_command(name="unstar", description="Unstar a set and remove all of its alerts")
-@slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
-@slash_option(name="stage", description="Stage name", required=False, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+@slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
+@slash_option(name="stage", description="Stage name", required=False, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
 async def unstar(ctx: SlashContext, artist: str, stage: str=""):
 	try:
 		matchfound = False
@@ -520,10 +527,10 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 		end=tafoutput.find("</raw_text>")
 
 		if (zulu == True):
-			combined = eventvenuename + " TAF " + currentdatetime.strftime("%d%H%M**Z** ") + tafoutput[begin+2:end]
+			combined = eventvenuename + " TAF " + currentdatetime.strftime("%d%H%MZ ") + tafoutput[begin+2:end]
 
 		else:
-			combined = eventvenuename + " TAF " + (currentdatetime+timedelta(hours=utcoffset)).strftime("%d%H%M**L** **(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:end]
+			combined = eventvenuename + " TAF " + currentdatetime.strftime("%d%H%MZ **(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:end]
 
 		combined += "\n\nREMARKS"
 
@@ -540,7 +547,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 							nextartist=nextartist+":small_blue_diamond:"
 						nextsettime=setdata[stageindex][idx]["settime"]
 						if (zulu == True):
-							combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
+							combined += nextsettime.strftime("%d%H%MZ ") + nextartist
 						else:
 							combined += (nextsettime+timedelta(hours=utcoffset)).strftime(" %a %b%d %H%ML ").upper() + nextartist
 						break
@@ -551,7 +558,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 							nextartist=nextartist+":small_blue_diamond:"
 						nextsettime=setdata[stageindex][idx+1]["settime"]
 						if (zulu == True):
-							combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
+							combined += nextsettime.strftime("%d%H%MZ ") + nextartist
 						else:
 							combined += (nextsettime+timedelta(hours=utcoffset)).strftime(" %a %b%d %H%ML ").upper() + nextartist
 						break
@@ -563,7 +570,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 						nextartist=nextartist+":small_blue_diamond:"
 					nextsettime = setdata[stageindex][0]["settime"]
 					if (zulu == True):
-						combined += nextsettime.strftime("%d%H%M**Z** ") + nextartist
+						combined += nextsettime.strftime("%d%H%MZ ") + nextartist
 					else:
 						combined += (nextsettime+timedelta(hours=utcoffset)).strftime(" %a %b%d %H%ML ").upper() + nextartist
 					break
@@ -584,8 +591,8 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 		await ctx.send("Error running command.", ephemeral=True)
 
 @slash_command(name="createset", description="Create a new set and add it to the schedule")
-@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
-@slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
+@slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
 @slash_option(name="set_start_time", description="LOCAL set starting time (use DDHHMM)", required=True, opt_type=OptionType.STRING, min_length=6, max_length=6)
 @slash_option(name="set_length", description="Length of set in minutes", required=True, opt_type=OptionType.INTEGER)
 @slash_option(name="does_stage_close", description="Denotes if stage closes after added set", required=True, opt_type=OptionType.BOOLEAN)
@@ -683,24 +690,19 @@ async def autocomplete(ctx: AutocompleteContext):
 		
 
 @slash_command(name="removeset", description="Remove a set you created from the schedule")
-@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
-@slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
-@slash_option(name="set_start_time", description="LOCAL set starting time (use DDHHMM)", required=True, opt_type=OptionType.STRING, min_length=6, max_length=6)
-async def removeset(ctx: SlashContext, stage: str, artist: str, set_start_time: str):
+@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
+@slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
+async def removeset(ctx: SlashContext, stage: str, artist: str):
 	try:
 		global setdata
 		setremoved = False
-		formattedsettime = datetime.strptime(currentyear+currentmonth+set_start_time,'%y%m%d%H%M')
-
-		#add UTC offset
-		formattedsettime -= timedelta(hours=utcoffset)
 
 		#empty lists for list comprehension
 		setdatacopy=[]
 		for x in setdata:
 			stagecopy=[]
 			for y in x:
-				if (y["stagename"].lower()==stage.lower() and y["artistname"].lower()==artist.lower() and y["settime"]==formattedsettime and y["addedby"]==ctx.author):
+				if (y["stagename"].lower()==stage.lower() and y["artistname"].lower()==artist.lower() and y["addedby"]==ctx.author):
 					await ctx.send(":exclamation: " + ctx.author.mention + " removed " + y["artistname"] + "'s " + y["stagename"] + " set at " + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " from the schedule.")
 					setremoved = True
 				else:
@@ -714,6 +716,8 @@ async def removeset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 		else:
 			#refresh artistlist
 			await artistlistmaintain()
+			#sort schedule and garbage collect any empty stages
+			await schedulesorter()
 
 		#log
 		cls_log.info(str(ctx.author) + " used /removeset")
@@ -751,7 +755,7 @@ async def autocomplete(ctx: AutocompleteContext):
 		await ctx.send(choices=choicelist[:])
 
 @slash_command(name="fullschedule", description="List the full schedule for a stage")
-@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+@slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
 async def fullschedule(ctx: SlashContext, stage: str):
 	try:
 		stagefound = False
@@ -793,7 +797,7 @@ async def autocomplete(ctx: AutocompleteContext):
 		await ctx.send(choices=choicelist[:])
 
 @slash_command(name="searchsets", description="Find and list all sets for the specified artist")
-@slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=3)
+@slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
 async def searchsets(ctx: SlashContext, artist: str):
 	try:
 		artistfound = False
