@@ -59,6 +59,11 @@ numstages=(len(''.join(schedule_parsed[3:]).split("^"))-1)
 
 setdata=[]
 
+additionalrmks=[]
+
+currentatistext=[]
+currentatisindex=0
+
 #refreshes artistlist and sorts
 async def artistlistmaintain():
 	global artistlist
@@ -89,11 +94,6 @@ async def scheduleparser():
 	#refresh artistlist
 	await artistlistmaintain()
 
-
-additionalrmks=[]
-
-currentatistext=[]
-currentatisindex=0
 
 #sorts schedule and removes stages without sets
 async def schedulesorter():
@@ -126,6 +126,34 @@ async def startier(alerts):
 		return (":small_red_triangle:")
 	else:
 		return ("")
+	
+async def artistautocomplete(input):
+	choicelist=[]
+	for x in artistlist:		
+		if (input.lower() in x.lower()):
+				artist_dict = {"name": x,"value": x}
+				choicelist.append(artist_dict)
+
+	if (len(choicelist)>25):
+		choices=choicelist[:25]
+		return (choices)
+	else:
+		choices=choicelist[:]
+		return (choices)
+	
+async def stageautocomplete(input):
+	choicelist=[]
+	for x in setdata:
+		if (input.lower() in x[0]["stagename"].lower()):
+			stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
+			choicelist.append(stage_dict)
+
+	if (len(choicelist)>25):
+		choices=choicelist[:25]
+		return (choices)
+	else:
+		choices=choicelist[:]
+		return (choices)
 
 
 @Task.create(IntervalTrigger(seconds=20))
@@ -329,30 +357,12 @@ async def star(ctx: SlashContext, artist: str, stage: str='', alert_interval: in
 #star artist autocomplete
 @star.autocomplete("artist")
 async def autocomplete(ctx: AutocompleteContext):
-	choicelist=[]
-	for x in artistlist:		
-		if (ctx.input_text.lower() in x.lower()):
-				artist_dict = {"name": x,"value": x}
-				choicelist.append(artist_dict)
-
-	if (len(choicelist)>25):
-		await ctx.send(choices=choicelist[:25])
-	else:
-		await ctx.send(choices=choicelist[:])
+	await ctx.send(await artistautocomplete(ctx.input_text))
 
 #star stage autocomplete
 @star.autocomplete("stage")
 async def autocomplete(ctx: AutocompleteContext):
-	choicelist=[]
-	for x in setdata:
-		if (ctx.input_text.lower() in x[0]["stagename"].lower()):
-			stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
-			choicelist.append(stage_dict)
-
-	if (len(choicelist)>25):
-		await ctx.send(choices=choicelist[:25])
-	else:
-		await ctx.send(choices=choicelist[:])
+	await ctx.send(await stageautocomplete(ctx.input_text))
 
 @slash_command(name="unstar", description="Unstar a set and remove all of its alerts")
 @slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
@@ -391,30 +401,12 @@ async def unstar(ctx: SlashContext, artist: str, stage: str=""):
 #unstar artist autocomplete
 @unstar.autocomplete("artist")
 async def autocomplete(ctx: AutocompleteContext):
-	choicelist=[]
-	for x in artistlist:		
-		if (ctx.input_text.lower() in x.lower()):
-				artist_dict = {"name": x,"value": x}
-				choicelist.append(artist_dict)
-
-	if (len(choicelist)>25):
-		await ctx.send(choices=choicelist[:25])
-	else:
-		await ctx.send(choices=choicelist[:])
+	await ctx.send(await artistautocomplete(ctx.input_text))
 
 #unstar stage autocomplete
 @unstar.autocomplete("stage")
 async def autocomplete(ctx: AutocompleteContext):
-	choicelist=[]
-	for x in setdata:
-		if (ctx.input_text.lower() in x[0]["stagename"].lower()):
-			stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
-			choicelist.append(stage_dict)
-
-	if (len(choicelist)>25):
-		await ctx.send(choices=choicelist[:25])
-	else:
-		await ctx.send(choices=choicelist[:])
+	await ctx.send(await stageautocomplete(ctx.input_text))
 
 @slash_command(name="atis", description="Show the ATIS, including current weather and sets")
 async def atis(ctx: SlashContext):
@@ -675,31 +667,13 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 #createset stage autocomplete
 @createset.autocomplete("stage")
 async def autocomplete(ctx: AutocompleteContext):
-	choicelist=[]
-	for x in setdata:
-		if (ctx.input_text.lower() in x[0]["stagename"].lower()):
-			stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
-			choicelist.append(stage_dict)
-
-	if (len(choicelist)>25):
-		await ctx.send(choices=choicelist[:25])
-	else:
-		await ctx.send(choices=choicelist[:])
+	await ctx.send(await stageautocomplete(ctx.input_text))
 	
 
 #createset artist autocomplete
 @createset.autocomplete("artist")
 async def autocomplete(ctx: AutocompleteContext):
-	choicelist=[]
-	for x in artistlist:		
-		if (ctx.input_text.lower() in x.lower()):
-				artist_dict = {"name": x,"value": x}
-				choicelist.append(artist_dict)
-
-	if (len(choicelist)>25):
-		await ctx.send(choices=choicelist[:25])
-	else:
-		await ctx.send(choices=choicelist[:])
+	await ctx.send(await artistautocomplete(ctx.input_text))
 		
 
 @slash_command(name="removeset", description="Remove a set you created from the schedule")
@@ -742,30 +716,12 @@ async def removeset(ctx: SlashContext, stage: str, artist: str):
 #removeset autocomplete
 @removeset.autocomplete("stage")
 async def autocomplete(ctx: AutocompleteContext):
-	choicelist=[]
-	for x in setdata:
-		if (ctx.input_text.lower() in x[0]["stagename"].lower()):
-			stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
-			choicelist.append(stage_dict)
-
-	if (len(choicelist)>25):
-		await ctx.send(choices=choicelist[:25])
-	else:
-		await ctx.send(choices=choicelist[:])
+	await ctx.send(await stageautocomplete(ctx.input_text))
 
 #removeset artist autocomplete
 @removeset.autocomplete("artist")
 async def autocomplete(ctx: AutocompleteContext):
-	choicelist=[]
-	for x in artistlist:		
-		if (ctx.input_text.lower() in x.lower()):
-				artist_dict = {"name": x,"value": x}
-				choicelist.append(artist_dict)
-
-	if (len(choicelist)>25):
-		await ctx.send(choices=choicelist[:25])
-	else:
-		await ctx.send(choices=choicelist[:])
+	await ctx.send(await artistautocomplete(ctx.input_text))
 
 @slash_command(name="fullschedule", description="List the full schedule for a stage")
 @slash_option(name="stage", description="Stage name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
@@ -797,16 +753,7 @@ async def fullschedule(ctx: SlashContext, stage: str):
 #fullschedule autocomplete
 @fullschedule.autocomplete("stage")
 async def autocomplete(ctx: AutocompleteContext):
-	choicelist=[]
-	for x in setdata:
-		if (ctx.input_text.lower() in x[0]["stagename"].lower()):
-			stage_dict = {"name": x[0]["stagename"],"value": x[0]["stagename"]}
-			choicelist.append(stage_dict)
-
-	if (len(choicelist)>25):
-		await ctx.send(choices=choicelist[:25])
-	else:
-		await ctx.send(choices=choicelist[:])
+	await ctx.send(await stageautocomplete(ctx.input_text))
 
 @slash_command(name="searchsets", description="Find and list all sets for the specified artist")
 @slash_option(name="artist", description="Artist name", required=True, opt_type=OptionType.STRING, autocomplete=True, min_length=2)
@@ -842,15 +789,6 @@ async def searchsets(ctx: SlashContext, artist: str):
 #searchsets artist autocomplete
 @searchsets.autocomplete("artist")
 async def autocomplete(ctx: AutocompleteContext):
-	choicelist=[]
-	for x in artistlist:		
-		if (ctx.input_text.lower() in x.lower()):
-				artist_dict = {"name": x,"value": x}
-				choicelist.append(artist_dict)
-
-	if (len(choicelist)>25):
-		await ctx.send(choices=choicelist[:25])
-	else:
-		await ctx.send(choices=choicelist[:])
+	await ctx.send(await artistautocomplete(ctx.input_text))
 	
 bot.start(token)
