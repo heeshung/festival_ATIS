@@ -198,7 +198,8 @@ async def help(ctx: SlashContext):
 	> - **/searchsets <artist>**: replies with a list of all sets for the specified artist\n\
 	> - **/star <artist>** <stage> <alert_interval>: stars a set and sets up an alert with the specified alert interval (default is 15 minutes)\n\
 	> - **/taf** <zulu>: replies with the area TAF, upcoming sets and times by stage; set <zulu> to True for Zulu times (default is False)\n\
-	> - **/unstar <artist>** <stage>: unstars all sets with the specified artist and stage\n\n### **Notes**:\n- **bold** flags are required\n- :small_blue_diamond: denotes starred set", ephemeral=True)
+	> - **/unstar <artist>** <stage>: unstars all sets with the specified artist and stage\n\n### **Notes**:\n- **bold** flags are required\n- :small_blue_diamond:, :small_orange_diamond:, :small_red_triangle: denote starred sets by popularity\n\
+	 - :small_blue_diamond: = set starred by one person\n - :small_orange_diamond: = set starred by two people \n - :small_red_triangle: = set starred by more than two people", ephemeral=True)
 		
 		#log
 		cls_log.info(str(ctx.author) + " used /help")
