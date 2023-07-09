@@ -197,7 +197,7 @@ async def on_ready():
 	await scheduleparser()
 	await schedulesorter()
 	alerter.start()
-	await channel.send("EVENT ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z", silent=True)
+	await channel.send(eventvenuename + " ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z", silent=True)
 
 @listen()
 async def on_message_create(event):
