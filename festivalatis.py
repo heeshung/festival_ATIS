@@ -39,7 +39,7 @@ channelid = int(channelfile.read())
 channelfile.close()
 
 #read schedule
-schedule = open(sysargv[1],"r")
+schedule = open(sys.argv[1],"r")
 
 #remove newlines
 schedule_data = schedule.read()
