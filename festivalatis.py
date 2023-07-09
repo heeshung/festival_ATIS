@@ -3,6 +3,7 @@ import requests
 import time
 import math
 import logging
+import sys
 from interactions import slash_command, slash_option, SlashContext, Client, Intents, listen, OptionType, Task, IntervalTrigger, AutocompleteContext
 from interactions.api.events import Component
 from interactions.ext import prefixed_commands
@@ -38,7 +39,7 @@ channelid = int(channelfile.read())
 channelfile.close()
 
 #read schedule
-schedule = open("schedule","r")
+schedule = open(sysargv[1],"r")
 
 #remove newlines
 schedule_data = schedule.read()
