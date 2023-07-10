@@ -62,7 +62,7 @@ setdata=[]
 
 additionalrmks=[]
 
-currentatistext=[]
+currentatistextcompare=[]
 currentatisindex=0
 
 #refreshes artistlist and sorts
@@ -414,7 +414,7 @@ async def atis(ctx: SlashContext):
 	try:
 
 		global currentatisindex
-		global currentatistext
+		global currentatistextcompare
 
 
 		#get current time
@@ -427,25 +427,34 @@ async def atis(ctx: SlashContext):
 		begin=atisoutput.find("Z ")
 		end=atisoutput.find("</raw_text>")
 
+		#atiscompare to compare next atis with current to determine if atis index should be advanced
+
 		atiscompare=[]
-		atiscompare.append(atisoutput[begin+2:end] + "\n\nREMARKS")
+		finalatis = []
+		atiscompare.append(atisoutput[begin+2:end])
+		finalatis.append(atisoutput[begin+2:end] + "\n\nREMARKS")
 		timeremaintext=[]
 
 		#iterate through each stage
 		for stageindex in range(0,len(setdata)):
 			#add stage name
-			atiscompose = "\n**" + setdata[stageindex][0]["stagename"] + "**: "
+			atiscompare.append(setdata[stageindex][0]["stagename"])
+			finalatiscompose = "\n**" + setdata[stageindex][0]["stagename"] + "**: "
 			timeremaincompose=""
 			for idx, x in reversed(list(enumerate(setdata[stageindex]))):
 				if (currentdatetime >= setdata[stageindex][idx]["settime"]):
 					currentartist=setdata[stageindex][idx]["artistname"]
 					#add star if currentartist is starred
 					currentartist=currentartist + await startier(setdata[stageindex][idx]["alerts"])
+					#adding currentartist with star to compare
+					currentartistcompare = currentartist
 					#check if current artist is not last
 					if (idx < len(setdata[stageindex])-1):
 						nextartist = setdata[stageindex][idx+1]["artistname"]
 						#add star if next artist is starred
 						nextartist=nextartist + await startier(setdata[stageindex][idx+1]["alerts"])
+						#adding nextartist with star to compare
+						nextartistcompare = nextartist
 						#get minutes remaining in set
 						timeremain = (setdata[stageindex][idx+1]["settime"]-currentdatetime).total_seconds()
 						timeremain = math.ceil(timeremain/60)
@@ -461,12 +470,15 @@ async def atis(ctx: SlashContext):
 						timeremaincompose=" (" + nextartist + " in " + timesuffix + ")"
 					#if current artist is last
 					else:
+						nextartistcompare=""
 						timeremaincompose=""
 					break
 				#if current artist is before first
 				nextartist = setdata[stageindex][0]["artistname"]
 				#add star if next artist is starred
 				nextartist=nextartist + await startier(setdata[stageindex][0]["alerts"])
+				#adding nextartist with star to compare
+				nextartistcompare = nextartist
 				#get minutes before set
 				timeremain = (setdata[stageindex][0]["settime"]-currentdatetime).total_seconds()
 				timeremain = math.ceil(timeremain/60)
@@ -481,35 +493,41 @@ async def atis(ctx: SlashContext):
 				timesuffix += str(int(timeremain%60)) + " min"
 				timeremaincompose=" (" + nextartist + " in " + timesuffix + ")"
 				currentartist="STGE CLSD"
+				currentartistcompare = currentartist
 
 			timeremaintext.append(timeremaincompose)
-			atiscompose += currentartist
-			atiscompare.append(atiscompose)
 
-		#initialize blank remarks to end of list
-		atiscompare.append("")
+			#add current artist to compare
+			atiscompare.append(currentartistcompare)
+			#add next artist to compare
+			atiscompare.append(nextartistcompare)
+
+			finalatiscompose += currentartist
+			
+			finalatis.append(finalatiscompose)
 
 		#add remarks into last entry of atiscompare list
 		if (len(additionalrmks)>0):
-			atiscompare[len(atiscompare)-1]="\n\nADDITIONAL REMARKS"
+			finalatis.append("\n\nADDITIONAL REMARKS")
 			for j in additionalrmks:
-				atiscompare[len(atiscompare)-1]+="\n- "+j["remarktext"] + " (" + str(j["author"]) + ")"
+				atiscompare.append("\n- "+j["remarktext"] + " (" + str(j["author"]) + ")")
+				finalatis.append("\n- "+j["remarktext"] + " (" + str(j["author"]) + ")")
 
 		#check if new ATIS matches old, if not advance ATIS letter
-		if (len(currentatistext)==0):
-			currentatistext=atiscompare.copy()
+		if (len(currentatistextcompare)==0):
+			currentatistextcompare=atiscompare.copy()
 
-		elif (len(currentatistext)>0 and (atiscompare != currentatistext)):
+		elif (len(currentatistextcompare)>0 and (atiscompare != currentatistextcompare)):
 			currentatisindex=(currentatisindex+1)%26
-			currentatistext=atiscompare.copy()
+			currentatistextcompare=atiscompare.copy()
 
 		#compose atis
-		combined = eventvenuename + " ATIS INFO " + atisletters[currentatisindex] + " " + currentdatetime.strftime("%d%H%MZ ") + (currentdatetime+timedelta(hours=utcoffset)).strftime("**(%a %b%d %H%ML)** ").upper() + currentatistext[0]
-		for x in range(1,len(currentatistext)):
-							combined += currentatistext[x]
-							#add time remaining text
-							if (x < len(currentatistext)-1):
-									combined += timeremaintext[x-1]
+		combined = eventvenuename + " ATIS INFO " + atisletters[currentatisindex] + " " + currentdatetime.strftime("%d%H%MZ ") + (currentdatetime+timedelta(hours=utcoffset)).strftime("**(%a %b%d %H%ML)** ").upper()
+		for x in range(0,len(finalatis)):
+			combined += finalatis[x]
+			#add time remaining text
+			if (x>0 and x < len(timeremaintext)):
+					combined += timeremaintext[x-1]
 
 
 		await ctx.send(combined, silent=True)
