@@ -347,7 +347,7 @@ async def star(ctx: SlashContext, artist: str, stage: str='', alert_interval: in
 				
 		#if no match is found
 		if (matchfound == False):
-			await ctx.send("Couldn't find any sets with '"+artist+"' in the artist name that are not already starred with that alert interval or have not already begun.", ephemeral=True)
+			await ctx.send("Couldn't find any sets with '"+artist+"' in the artist name that are not already starred, with that alert interval, or have not already begun.", ephemeral=True)
 
 		#log
 		cls_log.info(str(ctx.author) + " used /star")
@@ -391,7 +391,7 @@ async def unstar(ctx: SlashContext, artist: str, stage: str=""):
 					y["alerts"] = alertscopy[:]
 
 		if (matchfound == False):
-			await ctx.send("Couldn't find any starred sets with the entered parameters that you created.", ephemeral=True)
+			await ctx.send("Couldn't find any sets with the entered parameters that you starred.", ephemeral=True)
 
 		#log
 		cls_log.info(str(ctx.author) + " used /unstar")
