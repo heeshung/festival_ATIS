@@ -1,13 +1,10 @@
-import os
 import requests
-import time
 import math
 import logging
 import sys
 from interactions import slash_command, slash_option, SlashContext, Client, Intents, listen, OptionType, Task, IntervalTrigger, AutocompleteContext
-from interactions.api.events import Component
 from interactions.ext import prefixed_commands
-from datetime import timezone, timedelta, datetime
+from datetime import timedelta, datetime
 
 #logger
 logging.basicConfig(filename="log",
