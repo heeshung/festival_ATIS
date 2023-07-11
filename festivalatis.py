@@ -179,16 +179,16 @@ async def alerter():
 			#if there were triggered alerts
 			if (len(alertauthors)>0):
 				if ((set["settime"]-currentdatetime).total_seconds()/60 < 2):
-					messagecompose=("ATTENTION ALL AIRCRAFT @here: **" + set["artistname"] + "** BEGINS **NOW** AT **" + set["stagename"] + "** (starred by")
+					messagecompose=("ATTENTION ALL AIRCRAFT: **" + set["artistname"] + "** BEGINS **NOW** AT **" + set["stagename"] + "** (starred by")
 					for x in alertauthors:
 						messagecompose+=" "+str(x)
-					messagecompose+="). <a:POGSLIDE:833580864688095262><a:POGSLIDE:833580864688095262>"
+					messagecompose+="). <a:POGSLIDE:833580864688095262><a:POGSLIDE:833580864688095262>  @everyone"
 					await channel.send(messagecompose)
 				else:
-					messagecompose=("ATTENTION ALL AIRCRAFT @here: **" + set["artistname"] + "** BEGINS IN **" + str(math.ceil((set["settime"]-currentdatetime).total_seconds()/60)) + " MIN** AT **" + set["stagename"] + "** (starred by")
+					messagecompose=("ATTENTION ALL AIRCRAFT: **" + set["artistname"] + "** BEGINS IN **" + str(math.ceil((set["settime"]-currentdatetime).total_seconds()/60)) + " MIN** AT **" + set["stagename"] + "** (starred by")
 					for x in alertauthors:
 						messagecompose+=" "+str(x)
-					messagecompose+="). <a:peepoDJ:972197117584080996> <a:PepoDance:746268833890828388>"
+					messagecompose+="). <a:peepoDJ:972197117584080996> <a:PepoDance:746268833890828388>  @everyone"
 					await channel.send(messagecompose)
 
 @listen()
