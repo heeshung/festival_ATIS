@@ -5,6 +5,7 @@ import sys
 from interactions import slash_command, slash_option, SlashContext, Client, Intents, listen, OptionType, Task, IntervalTrigger, AutocompleteContext
 from interactions.ext import prefixed_commands
 from datetime import timedelta, datetime
+from zoneinfo import ZoneInfo
 
 #logger
 logging.basicConfig(filename="log",
@@ -19,6 +20,7 @@ prefixed_commands.setup(bot)
 
 atisletters=["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
 atisepoch=datetime.utcnow()
+atisepoch = atisepoch.replace(tzinfo=ZoneInfo("UTC"))
 
 currentyear = datetime.utcnow().strftime("%y")
 currentmonth = datetime.utcnow().strftime("%m")
@@ -46,8 +48,8 @@ schedule.close()
 #get venue name
 eventvenuename=schedule_parsed[0]
 
-#get UTC offset
-utcoffset = int(schedule_parsed[1])
+#get time zone
+time_zone = schedule_parsed[1]
 
 #get icao airport code
 icao = schedule_parsed[2]
@@ -83,8 +85,8 @@ async def scheduleparser():
 		for z in range(0,len(sets_parsed),2):
 			#convert string into datetime
 			formattedtime = datetime.strptime(currentyear+currentmonth+sets_parsed[z],'%y%m%d%H%M')
-			#add UTC offset
-			formattedtime -= timedelta(hours=utcoffset)
+			#set time zone
+			formattedtime = formattedtime.replace(tzinfo=ZoneInfo(time_zone))
 			alert_list = []
 			set_dict = {"stagename": stagedata[0], "artistname": sets_parsed[z+1], "settime": formattedtime, "addedby": bot.owner, "alerts": alert_list}
 			setdatabystage.append(set_dict)
@@ -160,6 +162,9 @@ async def alerter():
 	#get current time
 	currentdatetime=datetime.utcnow()
 
+	#set UTC on currentdatetime
+	currentdatetime=currentdatetime.replace(tzinfo=ZoneInfo("UTC"))
+
 
 	#iterate through alert list, for each stage
 	for stage in setdata:
@@ -195,7 +200,7 @@ async def on_ready():
 	await scheduleparser()
 	await schedulesorter()
 	alerter.start()
-	await channel.send(eventvenuename + " ATIS/TAF SERVICE ONLINE " + atisepoch.strftime("%d%H%M") + "Z", silent=True)
+	await channel.send(eventvenuename + " ATIS/TAF SERVICE ONLINE " + atisepoch.astimezone(ZoneInfo("UTC")).strftime("%d%H%M") + "Z", silent=True)
 
 @listen()
 async def on_message_create(event):
@@ -246,7 +251,7 @@ async def liststarredsets(ctx: SlashContext):
 				for z in y["alerts"]:
 					foundalerts.append(z)
 				if (len(foundalerts)>0):
-					listcompose += "\n- " + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + y["artistname"] + " at " + y["stagename"]
+					listcompose += "\n- " + (y["settime"].astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + " - " + y["artistname"] + " at " + y["stagename"]
 					#loop through found alerts
 					for b in foundalerts:
 						listcompose += "\n - (" + str(b["author"]) + ", T-" + str(b["alertinterval"])
@@ -318,6 +323,9 @@ async def star(ctx: SlashContext, artist: str, stage: str='', alert_interval: in
 		#get current time
 		currentdatetime=datetime.utcnow()
 
+		#set UTC on currentdatetime
+		currentdatetime=currentdatetime.replace(tzinfo=ZoneInfo("UTC"))
+
 		searchterm = artist.lower()
 		matchfound = False
 
@@ -340,7 +348,7 @@ async def star(ctx: SlashContext, artist: str, stage: str='', alert_interval: in
 						a["alerts"].append(alert_dict)
 						
 						matchfound = True
-						await ctx.send("You starred " + a["artistname"] + "'s " + a["stagename"] + " set at " + (a["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " (T-" + str(alert_interval) + "). :white_check_mark:", ephemeral=True)
+						await ctx.send("You starred " + a["artistname"] + "'s " + a["stagename"] + " set at " + (a["settime"].astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + " (T-" + str(alert_interval) + "). :white_check_mark:", ephemeral=True)
 				
 		#if no match is found
 		if (matchfound == False):
@@ -384,7 +392,7 @@ async def unstar(ctx: SlashContext, artist: str, stage: str=""):
 							alertscopy.append(z)
 					#if matches were found
 					if (len(alertscopy)<len(y["alerts"])):
-						await ctx.send("You unstarred " + y["artistname"] + "'s " + y["stagename"] + " set at " + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + ". :x:", ephemeral=True)
+						await ctx.send("You unstarred " + y["artistname"] + "'s " + y["stagename"] + " set at " + (y["settime"].astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + ". :x:", ephemeral=True)
 					y["alerts"] = alertscopy[:]
 
 		if (matchfound == False):
@@ -416,6 +424,9 @@ async def atis(ctx: SlashContext):
 
 		#get current time
 		currentdatetime=datetime.utcnow()
+
+		#set UTC on currentdatetime
+		currentdatetime=currentdatetime.replace(tzinfo=ZoneInfo("UTC"))
 
 
 		#get METAR
@@ -519,7 +530,7 @@ async def atis(ctx: SlashContext):
 			currentatistextcompare=atiscompare.copy()
 
 		#compose atis
-		combined = eventvenuename + " ATIS INFO " + atisletters[currentatisindex] + " " + currentdatetime.strftime("%d%H%MZ ") + (currentdatetime+timedelta(hours=utcoffset)).strftime("**(%a %b%d %H%ML)** ").upper()
+		combined = eventvenuename + " ATIS INFO " + atisletters[currentatisindex] + " " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + (currentdatetime.astimezone(ZoneInfo(time_zone))).strftime("**(%a %b%d %H%ML)** ").upper()
 		for x in range(0,len(finalatis)):
 			combined += finalatis[x]
 			#add time remaining text
@@ -544,16 +555,19 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 		#get current time
 		currentdatetime=datetime.utcnow()
 
+		#set UTC on currentdatetime
+		currentdatetime=currentdatetime.replace(tzinfo=ZoneInfo("UTC"))
+
 		c_taf=requests.get('https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=tafs&requestType=retrieve&format=xml&stationString='+icao+'&hoursBeforeNow=4')
 		tafoutput = (c_taf.text)
 		begin=tafoutput.find("Z ")
 		end=tafoutput.find("</raw_text>")
 
 		if (zulu == True):
-			combined = eventvenuename + " TAF " + currentdatetime.strftime("%d%H%MZ ") + tafoutput[begin+2:end]
+			combined = eventvenuename + " TAF " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + tafoutput[begin+2:end]
 
 		else:
-			combined = eventvenuename + " TAF " + currentdatetime.strftime("%d%H%MZ **(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:end]
+			combined = eventvenuename + " TAF " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") +  currentdatetime.astimezone(ZoneInfo(time_zone)).strftime("**(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:end]
 
 		combined += "\n\nREMARKS"
 
@@ -569,9 +583,9 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 						nextartist=nextartist + await startier(setdata[stageindex][idx]["alerts"])
 						nextsettime=setdata[stageindex][idx]["settime"]
 						if (zulu == True):
-							combined += nextsettime.strftime("%d%H%MZ ") + nextartist
+							combined += nextsettime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + nextartist
 						else:
-							combined += (nextsettime+timedelta(hours=utcoffset)).strftime(" %a %b%d %H%ML ").upper() + nextartist
+							combined += (nextsettime.astimezone(ZoneInfo(time_zone))).strftime(" %a %b%d %H%ML ").upper() + nextartist
 						break
 					else:
 						nextartist=setdata[stageindex][idx+1]["artistname"]
@@ -579,9 +593,9 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 						nextartist=nextartist + await startier(setdata[stageindex][idx+1]["alerts"])
 						nextsettime=setdata[stageindex][idx+1]["settime"]
 						if (zulu == True):
-							combined += nextsettime.strftime("%d%H%MZ ") + nextartist
+							combined += nextsettime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + nextartist
 						else:
-							combined += (nextsettime+timedelta(hours=utcoffset)).strftime(" %a %b%d %H%ML ").upper() + nextartist
+							combined += (nextsettime.astimezone(ZoneInfo(time_zone))).strftime(" %a %b%d %H%ML ").upper() + nextartist
 						break
 				#if current time is before first set
 				elif (currentdatetime < setdata[stageindex][0]["settime"]):
@@ -590,9 +604,9 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 					nextartist=nextartist + await startier(setdata[stageindex][0]["alerts"])
 					nextsettime = setdata[stageindex][0]["settime"]
 					if (zulu == True):
-						combined += nextsettime.strftime("%d%H%MZ ") + nextartist
+						combined += nextsettime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + nextartist
 					else:
-						combined += (nextsettime+timedelta(hours=utcoffset)).strftime(" %a %b%d %H%ML ").upper() + nextartist
+						combined += (nextsettime.astimezone(ZoneInfo(time_zone))).strftime(" %a %b%d %H%ML ").upper() + nextartist
 					break
 				else:
 					continue
@@ -624,10 +638,13 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 		formattedsettime = datetime.strptime(currentyear+currentmonth+set_start_time,'%y%m%d%H%M')
 		
 
-		#add UTC offset
-		formattedsettime -= timedelta(hours=utcoffset)
+		#set time zone
+		formattedsettime = formattedsettime.replace(tzinfo=ZoneInfo(time_zone))
 		#compute set end time
 		formattedendtime = formattedsettime +timedelta(minutes=set_length)
+
+		#set time zone
+		formattedendtime = formattedendtime.replace(tzinfo=ZoneInfo(time_zone))
 
 		set_alerts_list = []
 		end_alerts_list = []
@@ -664,11 +681,11 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 			await artistlistmaintain()
 			#sort schedule after addition
 			await schedulesorter()
-			await ctx.send(ctx.author.mention + " created a new " + str(set_length) + " min long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + "**. :sparkles::sparkles:")
+			await ctx.send(ctx.author.mention + " created a new " + str(set_length) + " min long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime.astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + "**. :sparkles::sparkles:")
 		else:
 			errorcompose = ""
 			if (setcollision == True):
-				errorcompose += ":exclamation: Another set already exists at **" + stage + "** at **" + (formattedsettime+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + "**"
+				errorcompose += ":exclamation: Another set already exists at **" + stage + "** at **" + (formattedsettime.astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + "**"
 			else:
 				errorcompose += "Error creating new set."
 			await ctx.send(errorcompose, ephemeral=True)
@@ -706,7 +723,7 @@ async def removeset(ctx: SlashContext, stage: str, artist: str):
 			stagecopy=[]
 			for y in x:
 				if (y["stagename"].lower()==stage.lower() and y["artistname"].lower()==artist.lower() and y["addedby"]==ctx.author):
-					await ctx.send(":exclamation: " + ctx.author.mention + " removed " + y["artistname"] + "'s " + y["stagename"] + " set at " + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " from the schedule.")
+					await ctx.send(":exclamation: " + ctx.author.mention + " removed " + y["artistname"] + "'s " + y["stagename"] + " set at " + (y["settime"].astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + " from the schedule.")
 					setremoved = True
 				else:
 					stagecopy.append(y)
@@ -750,7 +767,7 @@ async def fullschedule(ctx: SlashContext, stage: str):
 				listcompose = "## **" + x[0]["stagename"] + " FULL SCHEDULE:**"
 				stagefound = True
 				for y in x:
-					listcompose+="\n" + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + y["artistname"]
+					listcompose+="\n" + (y["settime"].astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + " - " + y["artistname"]
 					#add star if set is starred
 					listcompose+=await startier(y["alerts"])
 				await ctx.send(listcompose, ephemeral=True)
@@ -788,7 +805,7 @@ async def searchsets(ctx: SlashContext, artist: str):
 			for x in setdata:
 				for y in x:
 					if (artist.lower() in y["artistname"].lower()):
-						listcompose += "\n- " + (y["settime"]+timedelta(hours=utcoffset)).strftime("%a %b%d %H%ML").upper() + " - " + y["artistname"] + " - " + y["stagename"]
+						listcompose += "\n- " + (y["settime"].astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + " - " + y["artistname"] + " - " + y["stagename"]
 						#add star if set is starred
 						listcompose+=await startier(y["alerts"])
 			await ctx.send(listcompose, ephemeral=True)
