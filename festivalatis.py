@@ -530,7 +530,7 @@ async def atis(ctx: SlashContext):
 			currentatistextcompare=atiscompare.copy()
 
 		#compose atis
-		combined = eventvenuename + " (" + icao + ") " + " ATIS INFO " + atisletters[currentatisindex] + " " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + (currentdatetime.astimezone(ZoneInfo(time_zone))).strftime("**(%a %b%d %H%ML)** ").upper()
+		combined = eventvenuename + " (" + icao + ")" + " ATIS INFO " + atisletters[currentatisindex] + " " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + (currentdatetime.astimezone(ZoneInfo(time_zone))).strftime("**(%a %b%d %H%ML)** ").upper()
 		for x in range(0,len(finalatis)):
 			combined += finalatis[x]
 			#add time remaining text
@@ -564,10 +564,10 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 		end=tafoutput.find("</raw_text>")
 
 		if (zulu == True):
-			combined = eventvenuename  + " (" + icao + ") " + " TAF " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + tafoutput[begin+2:end]
+			combined = eventvenuename  + " (" + icao + ")" + " TAF " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + tafoutput[begin+2:end]
 
 		else:
-			combined = eventvenuename  + " (" + icao + ") " + " TAF " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") +  currentdatetime.astimezone(ZoneInfo(time_zone)).strftime("**(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:end]
+			combined = eventvenuename  + " (" + icao + ")" + " TAF " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") +  currentdatetime.astimezone(ZoneInfo(time_zone)).strftime("**(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:end]
 
 		combined += "\n\nREMARKS"
 
