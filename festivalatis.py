@@ -217,7 +217,7 @@ async def on_message_create(event):
 @slash_command(name="help", description="Show the help menu with all available commands")
 async def help(ctx: SlashContext):
 	try:
-		await ctx.send("## Commands\n\
+		await ctx.send("## COMMANDS\n\
 	> - **/addremarks <remarks>**: adds additional remarks to be displayed in ATIS and TAF\n\
 	> - **/atis**: replies with the area ATIS, current artists on stage, and time remaining in sets\n\
 	> - **/clearremarks**: clears all of your remarks\n\
@@ -264,7 +264,7 @@ async def liststarredsets(ctx: SlashContext):
 		if (len(listcompose)==0):
 			await ctx.send('No starred sets.', ephemeral=True)
 		else:
-			finalcompose='## STARRED SETS:'
+			finalcompose='## ALL STARRED SETS:'
 			finalcompose+=listcompose
 			await ctx.send(finalcompose, ephemeral=True)
 		
@@ -797,7 +797,7 @@ async def searchsets(ctx: SlashContext, artist: str):
 		for x in setdata:
 			for y in x:
 				if (artist.lower() in y["artistname"].lower()):
-					listcompose = "## All " + artist + " Sets:"
+					listcompose = "## ALL " + artist + " SETS:"
 					artistfound=True
 
 		if (artistfound==True):
