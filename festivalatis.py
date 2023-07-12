@@ -534,7 +534,7 @@ async def atis(ctx: SlashContext):
 		for x in range(0,len(finalatis)):
 			combined += finalatis[x]
 			#add time remaining text
-			if (x>0 and x < len(timeremaintext)):
+			if (x>0 and x < len(timeremaintext)+1):
 					combined += timeremaintext[x-1]
 
 
