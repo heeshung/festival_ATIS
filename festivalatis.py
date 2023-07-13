@@ -2,10 +2,11 @@ import requests
 import math
 import logging
 import sys
-from interactions import slash_command, slash_option, SlashContext, Client, Intents, listen, OptionType, Task, IntervalTrigger, AutocompleteContext
+from interactions import slash_command, slash_option, SlashContext, Client, Intents, listen, OptionType, Task, IntervalTrigger, AutocompleteContext, ActionRow, Button, spread_to_rows, ButtonStyle
 from interactions.ext import prefixed_commands
 from datetime import timedelta, datetime
 from zoneinfo import ZoneInfo
+from asyncio import TimeoutError
 
 #logger
 logging.basicConfig(filename="log",
@@ -631,35 +632,46 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 @slash_option(name="set_length", description="Length of set in minutes", required=True, opt_type=OptionType.INTEGER)
 @slash_option(name="does_stage_close", description="Denotes if stage closes after added set", required=True, opt_type=OptionType.BOOLEAN)
 async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: str, set_length: int, does_stage_close: bool):
-	try:
+	#try:
 
-		setadded = False
-		setcollision = False
-		formattedsettime = datetime.strptime(currentyear+currentmonth+set_start_time,'%y%m%d%H%M')
-		
+	setadded = False
+	setcollision = False
+	confirm_timeout = False
+	formattedsettime = datetime.strptime(currentyear+currentmonth+set_start_time,'%y%m%d%H%M')
+	
 
-		#set time zone
-		formattedsettime = formattedsettime.replace(tzinfo=ZoneInfo(time_zone))
-		#compute set end time
-		formattedendtime = formattedsettime +timedelta(minutes=set_length)
+	#set time zone
+	formattedsettime = formattedsettime.replace(tzinfo=ZoneInfo(time_zone))
+	#compute set end time
+	formattedendtime = formattedsettime +timedelta(minutes=set_length)
 
-		#set time zone
-		formattedendtime = formattedendtime.replace(tzinfo=ZoneInfo(time_zone))
+	#set time zone
+	formattedendtime = formattedendtime.replace(tzinfo=ZoneInfo(time_zone))
 
-		set_alerts_list = []
-		end_alerts_list = []
+	set_alerts_list = []
+	end_alerts_list = []
 
-		set_dict = {"artistname": artist, "stagename": stage, "settime": formattedsettime, "addedby": ctx.author, "alerts": set_alerts_list}
-		end_dict = {"artistname": "STGE CLSD", "stagename": stage, "settime": formattedendtime, "addedby": ctx.author, "alerts": end_alerts_list}
-		for x in setdata:
-			if (x[0]["stagename"]==stage):
-				#check if set at that time already exists
-				for y in x:
-					if (y["settime"]==formattedsettime):
-						setcollision = True
-				#stop if setcollision was detected
-				if (setcollision == True):
-					break
+	set_dict = {"artistname": artist, "stagename": stage, "settime": formattedsettime, "addedby": ctx.author, "alerts": set_alerts_list}
+	end_dict = {"artistname": "STGE CLSD", "stagename": stage, "settime": formattedendtime, "addedby": ctx.author, "alerts": end_alerts_list}
+	for x in setdata:
+		if (x[0]["stagename"]==stage):
+			#check if set at that time already exists
+			for y in x:
+				if (y["settime"]==formattedsettime):
+					setcollision = True
+			#stop if setcollision was detected
+			if (setcollision == True):
+				break
+			components: list[ActionRow] = spread_to_rows(Button(style=ButtonStyle.GREEN,label="Yes, create the set!",custom_id="confirm"),Button(style=ButtonStyle.SECONDARY,label="No, cancel.",custom_id="cancel"))
+			await ctx.send("Are you sure you want to create a new " + str(set_length) + " min long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime.astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + "**?", components=components, ephemeral=True)
+			try:
+				button_timeout = await bot.wait_for_component(components=components, timeout=5)
+
+			except TimeoutError:
+				#set confirm timeout to true
+				confirm_timeout = True
+				await ctx.delete(message_id)
+			else:
 				x.append(set_dict)
 				#add STGE CLSD if stage closes
 				if (does_stage_close==True):
@@ -667,35 +679,36 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 				setadded = True
 				break
 
-		#if stage not already in list
-		if (setadded == False and setcollision == False):
-			newsetlist=[]
-			newsetlist.append(set_dict)
-			if (does_stage_close==True):
-				newsetlist.append(end_dict)
-			setdata.append(newsetlist)
-			setadded = True
+	#if stage not already in list
+	if (setadded == False and setcollision == False and confirm_timeout == False):
+		newsetlist=[]
+		newsetlist.append(set_dict)
+		if (does_stage_close==True):
+			newsetlist.append(end_dict)
+		setdata.append(newsetlist)
+		setadded = True
 
-		if (setadded == True):
-			#refresh artistlist
-			await artistlistmaintain()
-			#sort schedule after addition
-			await schedulesorter()
-			await ctx.send(ctx.author.mention + " created a new " + str(set_length) + " min long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime.astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + "**. :sparkles::sparkles:")
+	if (setadded == True):
+		#refresh artistlist
+		await artistlistmaintain()
+		#sort schedule after addition
+		await schedulesorter()
+		await button_timeout.ctx.send(ctx.author.mention + " created a new " + str(set_length) + " min long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime.astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + "**. :sparkles::sparkles:")
+	#handle errors
+	else:
+		if (confirm_timeout == True):
+			errorcompose = "Confirmation timed out.  Please try creating your set again."
+		elif (setcollision == True):
+			errorcompose = ":exclamation: Another set already exists at **" + stage + "** at **" + (formattedsettime.astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + "**"
 		else:
-			errorcompose = ""
-			if (setcollision == True):
-				errorcompose += ":exclamation: Another set already exists at **" + stage + "** at **" + (formattedsettime.astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + "**"
-			else:
-				errorcompose += "Error creating new set."
-			await ctx.send(errorcompose, ephemeral=True)
+			errorcompose = "Error creating new set."
+		await ctx.send(errorcompose, ephemeral=True)
 
-		#log
-		cls_log.info(str(ctx.author) + " used /createset")
+	#log
+	cls_log.info(str(ctx.author) + " used /createset")
 
-	except:
-		await ctx.send("Error running command.", ephemeral=True)
-
+	#except:
+	#	await ctx.send("Error running command.", ephemeral=True)
 
 #createset stage autocomplete
 @createset.autocomplete("stage")
