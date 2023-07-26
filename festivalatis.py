@@ -663,14 +663,15 @@ async def createset(ctx: SlashContext, stage: str, artist: str, set_start_time: 
 			if (setcollision == True):
 				break
 			components: list[ActionRow] = spread_to_rows(Button(style=ButtonStyle.GREEN,label="Yes, create the set!",custom_id="confirm"),Button(style=ButtonStyle.SECONDARY,label="No, cancel.",custom_id="cancel"))
-			await ctx.send("Are you sure you want to create a new " + str(set_length) + " min long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime.astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + "**?", components=components, ephemeral=True)
+			message = await ctx.send("Are you sure you want to create a new " + str(set_length) + " min long **" + artist + "** set at **" + stage + "**, starting at **" + (formattedsettime.astimezone(ZoneInfo(time_zone))).strftime("%a %b%d %H%ML").upper() + "**?", components=components, ephemeral=True)
 			try:
 				button_timeout = await bot.wait_for_component(components=components, timeout=5)
 
 			except TimeoutError:
 				#set confirm timeout to true
 				confirm_timeout = True
-				await ctx.delete(message_id)
+				components[0].components[0].disabled = True
+				await message.edit(components=components)
 			else:
 				x.append(set_dict)
 				#add STGE CLSD if stage closes
