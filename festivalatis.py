@@ -84,7 +84,7 @@ async def scheduleparser():
 		setdatabystage=[]
 		for z in range(0,len(sets_parsed),2):
 			#convert string into datetime
-			formattedtime = datetime.strptime(currentyear+currentmonth+sets_parsed[z],'%y%m%d%H%M')
+			formattedtime = datetime.strptime(currentyear+sets_parsed[z],'%y%m%d%H%M')
 			#set time zone
 			formattedtime = formattedtime.replace(tzinfo=ZoneInfo(time_zone))
 			alert_list = []
