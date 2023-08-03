@@ -17,6 +17,7 @@ Features
 - Ability to search for sets by artist
 - Logging support
 - Error handling
+- Custom presence
 
 
 ## Schedule Format
