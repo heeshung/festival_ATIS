@@ -2,7 +2,7 @@ import requests
 import math
 import logging
 import sys
-from interactions import slash_command, slash_option, SlashContext, Client, Intents, listen, OptionType, Task, IntervalTrigger, AutocompleteContext
+from interactions import slash_command, slash_option, SlashContext, Client, Intents, listen, OptionType, Task, IntervalTrigger, AutocompleteContext, Activity
 from interactions.ext import prefixed_commands
 from datetime import timedelta, datetime
 from zoneinfo import ZoneInfo
@@ -45,17 +45,20 @@ schedule_data = schedule.read()
 schedule_parsed = schedule_data.split("\n")
 schedule.close()
 
+#get event name
+eventname=schedule_parsed[0]
+
 #get venue name
-eventvenuename=schedule_parsed[0]
+eventvenuename=schedule_parsed[1]
 
 #get time zone
-time_zone = schedule_parsed[1]
+time_zone = schedule_parsed[2]
 
 #get icao airport code
-icao = schedule_parsed[2]
+icao = schedule_parsed[3]
 
 #get number of stages based on number of colons
-numstages=(len(''.join(schedule_parsed[3:]).split("^"))-1)
+numstages=(len(''.join(schedule_parsed[4:]).split("^"))-1)
 
 setdata=[]
 
@@ -77,7 +80,7 @@ async def artistlistmaintain():
 
 async def scheduleparser():
 	#parse schedule data
-	for x in range(3,numstages+3):
+	for x in range(4,numstages+4):
 		#separate stage name and set data
 		stagedata = schedule_parsed[x].split("^")
 		sets_parsed = stagedata[1].split(",")
@@ -200,7 +203,8 @@ async def on_ready():
 	await scheduleparser()
 	await schedulesorter()
 	alerter.start()
-	await channel.send(eventvenuename + " ATIS/TAF SERVICE ONLINE " + atisepoch.astimezone(ZoneInfo("UTC")).strftime("%d%H%M") + "Z", silent=True)
+	#await channel.send(eventvenuename + " ATIS/TAF SERVICE ONLINE " + atisepoch.astimezone(ZoneInfo("UTC")).strftime("%d%H%M") + "Z", silent=True)
+	await bot.change_presence(status="ONLINE", activity=Activity(type=3, name=eventname))
 
 @listen()
 async def on_message_create(event):
@@ -824,4 +828,5 @@ async def searchsets(ctx: SlashContext, artist: str):
 async def autocomplete(ctx: AutocompleteContext):
 	await ctx.send(await artistautocomplete(ctx.input_text))
 	
+
 bot.start(token)
