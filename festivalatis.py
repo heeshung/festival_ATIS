@@ -45,8 +45,11 @@ schedule_data = schedule.read()
 schedule_parsed = schedule_data.split("\n")
 schedule.close()
 
-#get event name
-eventname=schedule_parsed[0]
+#get presence settings
+presence=schedule_parsed[0]
+presence_parsed=presence.split(",")
+presencetype=presence_parsed[0]
+presencename=presence_parsed[1]
 
 #get venue name
 eventvenuename=schedule_parsed[1]
@@ -204,7 +207,7 @@ async def on_ready():
 	await schedulesorter()
 	alerter.start()
 	#await channel.send(eventvenuename + " ATIS/TAF SERVICE ONLINE " + atisepoch.astimezone(ZoneInfo("UTC")).strftime("%d%H%M") + "Z", silent=True)
-	await bot.change_presence(status="ONLINE", activity=Activity(type=3, name=eventname))
+	await bot.change_presence(status="ONLINE", activity=Activity(type=presencetype, name=presencename))
 
 @listen()
 async def on_message_create(event):
