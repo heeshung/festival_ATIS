@@ -48,7 +48,7 @@ schedule.close()
 #get presence settings
 presence=schedule_parsed[0]
 presence_parsed=presence.split(",")
-presencetype=presence_parsed[0]
+presencetype=int(presence_parsed[0])
 presencename=presence_parsed[1]
 
 #get venue name
