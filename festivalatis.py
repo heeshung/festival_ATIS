@@ -437,17 +437,15 @@ async def atis(ctx: SlashContext):
 
 
 		#get METAR
-		c_atis=requests.get('https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&stationString='+icao+'&hoursBeforeNow=2')
+		c_atis=requests.get('https://aviationweather.gov/cgi-bin/data/metar.php?ids='+icao+'&hours=0&format=raw')
 		atisoutput = (c_atis.text)
-		begin=atisoutput.find("Z ")
-		end=atisoutput.find("</raw_text>")
 
 		#atiscompare to compare next atis with current to determine if atis index should be advanced
 
 		atiscompare=[]
 		finalatis = []
-		atiscompare.append(atisoutput[begin+2:end])
-		finalatis.append(atisoutput[begin+2:end] + "\n\nREMARKS")
+		atiscompare.append(atisoutput)
+		finalatis.append(atisoutput + "\n\nREMARKS")
 		timeremaintext=[]
 
 		#iterate through each stage
@@ -565,7 +563,7 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 		#set UTC on currentdatetime
 		currentdatetime=currentdatetime.replace(tzinfo=ZoneInfo("UTC"))
 
-		c_taf=requests.get('https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=tafs&requestType=retrieve&format=xml&stationString='+icao+'&hoursBeforeNow=4')
+		c_taf=requests.get('https://aviationweather.gov/cgi-bin/data/taf.php?ids='+icao+'&sep=true')
 		tafoutput = (c_taf.text)
 		begin=tafoutput.find("Z ")
 		end=tafoutput.find("</raw_text>")
