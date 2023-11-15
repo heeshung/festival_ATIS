@@ -446,7 +446,7 @@ async def atis(ctx: SlashContext):
 		atiscompare=[]
 		finalatis = []
 		atiscompare.append(atisoutput[begin+2:])
-		finalatis.append(atisoutput[begin+2:] + "\n\nREMARKS")
+		finalatis.append(atisoutput[begin+2:] + "\nREMARKS")
 		timeremaintext=[]
 
 		#iterate through each stage
@@ -567,15 +567,14 @@ async def taf(ctx: SlashContext, zulu: bool = False):
 		c_taf=requests.get('https://aviationweather.gov/cgi-bin/data/taf.php?ids='+icao)
 		tafoutput = (c_taf.text)
 		begin=tafoutput.find("Z ")
-		end=tafoutput.find("</raw_text>")
 
 		if (zulu == True):
-			combined = eventvenuename  + " (" + icao + ")" + " TAF " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + tafoutput[begin+2:end]
+			combined = eventvenuename  + " (" + icao + ")" + " TAF " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") + tafoutput[begin+2:]
 
 		else:
-			combined = eventvenuename  + " (" + icao + ")" + " TAF " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") +  currentdatetime.astimezone(ZoneInfo(time_zone)).strftime("**(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:end]
+			combined = eventvenuename  + " (" + icao + ")" + " TAF " + currentdatetime.astimezone(ZoneInfo("UTC")).strftime("%d%H%MZ ") +  currentdatetime.astimezone(ZoneInfo(time_zone)).strftime("**(%a %b%d %H%ML)** ").upper() + tafoutput[begin+2:]
 
-		combined += "\n\nREMARKS"
+		combined += "\nREMARKS"
 
 		for stageindex in range(0,len(setdata)):
 			combined += "\n**" + setdata[stageindex][0]["stagename"] + "**: FM"
