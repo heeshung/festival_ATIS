@@ -273,7 +273,7 @@ async def liststarredsets(ctx: SlashContext):
 		else:
 			finalcompose='## ALL STARRED SETS:'
 			finalcompose+=listcompose
-			finalcompose+='\n\n*sorted by stage, then set time'
+			finalcompose+='\n\n*sets are sorted by stage, then by set time'
 			await ctx.send(finalcompose, ephemeral=True)
 		
 		#log
