@@ -231,7 +231,7 @@ async def help(ctx: SlashContext):
 	> - **/createset <stage> <artist> <set_start_time> <set_length> <does_stage_close>**: creates a new set and adds it to the schedule; set <does_stage_close> to True if there is no set immediately following the created set\n\
 	> - **/fullschedule <stage>**: replies with the full schedule for the specified stage\n\
 	> - **/help**: replies with this help message\n\
-	> - **/liststarredsets**: replies with list of all starred sets, including who starred the set and alert intervals, sorted by stage, then by set time\n\
+	> - **/liststarredsets**: replies with list of all starred sets, including who starred the set and alert intervals, sorted by set time, then by stage\n\
 	> - **/removeset <stage> <artist>**: removes all sets with the specified stage and artist that you created from the schedule\n\
 	> - **/searchsets <artist>**: replies with a list of all sets for the specified artist\n\
 	> - **/star <artist>** <stage> <alert_interval>: stars a set and sets up an alert with the specified alert interval (default is 15 minutes)\n\
@@ -273,7 +273,7 @@ async def liststarredsets(ctx: SlashContext):
 		else:
 			finalcompose='## ALL STARRED SETS:'
 			finalcompose+=listcompose
-			finalcompose+='\n\n*sets are sorted by stage, then by set time'
+			finalcompose+='\n\n*sets are sorted by set time, then by stage'
 			await ctx.send(finalcompose, ephemeral=True)
 		
 		#log
