@@ -91,7 +91,7 @@ async def scheduleparser():
 		for z in range(0,len(sets_parsed),2):
 			#convert string into datetime
 			#support for sets not in current year
-			if (len(sets_parsed[z])==8):
+			if (len(sets_parsed[z])==10):
 				formattedtime = datetime.strptime(sets_parsed[z],'%y%m%d%H%M')
 			else:
 				formattedtime = datetime.strptime(currentyear+sets_parsed[z],'%y%m%d%H%M')
