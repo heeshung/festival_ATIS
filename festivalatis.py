@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 #logger
 logging.basicConfig(filename="log",
                     format='%(asctime)s %(message)s',
-                    filemode='w')
+                    filemode='a')
 cls_log = logging.getLogger()
 cls_log.setLevel(logging.INFO)
 
