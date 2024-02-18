@@ -45,23 +45,17 @@ schedule_data = schedule.read()
 schedule_parsed = schedule_data.split("\n")
 schedule.close()
 
-#get presence settings
-presence=schedule_parsed[0]
-presence_parsed=presence.split(",")
-presencetype=int(presence_parsed[0])
-presencename=presence_parsed[1]
-
 #get venue name
-eventvenuename=schedule_parsed[1]
+eventvenuename=schedule_parsed[0]
 
 #get time zone
-time_zone = schedule_parsed[2]
+time_zone = schedule_parsed[1]
 
 #get icao airport code
-icao = schedule_parsed[3]
+icao = schedule_parsed[2]
 
 #get number of stages based on number of colons
-numstages=(len(''.join(schedule_parsed[4:]).split("^"))-1)
+numstages=(len(''.join(schedule_parsed[3:]).split("^"))-1)
 
 setdata=[]
 
@@ -211,7 +205,7 @@ async def on_ready():
 	await schedulesorter()
 	alerter.start()
 	#await channel.send(eventvenuename + " ATIS/TAF SERVICE ONLINE " + atisepoch.astimezone(ZoneInfo("UTC")).strftime("%d%H%M") + "Z", silent=True)
-	await bot.change_presence(status="ONLINE", activity=Activity(type=presencetype, name=presencename))
+	#await bot.change_presence(status="ONLINE", activity=Activity(type=0, name="Poker Night"))
 
 @listen()
 async def on_message_create(event):
@@ -219,6 +213,20 @@ async def on_message_create(event):
 	if (event.message.guild == None and event.message.author != bot.user):
 		if (("what song is this" in event.message.content.lower() or "what is this song" in event.message.content.lower())):
 			await event.message.channel.send(event.message.author.mention + " It's Darude - Sandstorm.")
+		elif (event.message.author == bot.owner and "help"==event.message.content):
+			await event.message.channel.send("changepresence: change bot presence\nFormat: ```changepresence,clear/playing/streaming/listening/watching,activity name```")
+		elif (event.message.author == bot.owner and "changepresence" in event.message.content.lower()):
+			presence_parsed = event.message.content.split(",")
+			if (presence_parsed[1].lower()=="clear"):
+				await bot.change_presence(status="ONLINE", activity=None)
+			elif (presence_parsed[1].lower()=="playing"):
+				await bot.change_presence(status="ONLINE", activity=Activity(type=0, name=presence_parsed[2]))
+			elif (presence_parsed[1].lower()=="streaming"):
+				await bot.change_presence(status="ONLINE", activity=Activity(type=1, name=presence_parsed[2]))
+			elif (presence_parsed[1].lower()=="listening"):
+				await bot.change_presence(status="ONLINE", activity=Activity(type=2, name=presence_parsed[2]))
+			elif (presence_parsed[1].lower()=="watching"):
+				await bot.change_presence(status="ONLINE", activity=Activity(type=3, name=presence_parsed[2]))
 		elif (event.message.author == bot.owner):
 			await channel.send(event.message.content)
 			
