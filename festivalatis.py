@@ -213,22 +213,24 @@ async def on_message_create(event):
 	if (event.message.guild == None and event.message.author != bot.user):
 		if (("what song is this" in event.message.content.lower() or "what is this song" in event.message.content.lower())):
 			await event.message.channel.send(event.message.author.mention + " It's Darude - Sandstorm.")
-		elif (event.message.author == bot.owner and "help"==event.message.content):
-			await event.message.channel.send("changepresence: change bot presence\nFormat: ```changepresence,clear/playing/streaming/listening/watching,activity name```")
-		elif (event.message.author == bot.owner and "changepresence" in event.message.content.lower()):
-			presence_parsed = event.message.content.split(",")
-			if (presence_parsed[1].lower()=="clear"):
-				await bot.change_presence(status="ONLINE", activity=None)
-			elif (presence_parsed[1].lower()=="playing"):
-				await bot.change_presence(status="ONLINE", activity=Activity(type=0, name=presence_parsed[2]))
-			elif (presence_parsed[1].lower()=="streaming"):
-				await bot.change_presence(status="ONLINE", activity=Activity(type=1, name=presence_parsed[2]))
-			elif (presence_parsed[1].lower()=="listening"):
-				await bot.change_presence(status="ONLINE", activity=Activity(type=2, name=presence_parsed[2]))
-			elif (presence_parsed[1].lower()=="watching"):
-				await bot.change_presence(status="ONLINE", activity=Activity(type=3, name=presence_parsed[2]))
-		elif (event.message.author == bot.owner):
-			await channel.send(event.message.content)
+		#if message author is bot owner
+		if (event.message.author == bot.owner):
+			if ("help"==event.message.content):
+				await event.message.channel.send("changepresence: change bot presence\nFormat: ```changepresence,clear/playing/streaming/listening/watching,activity name```")
+			elif ("changepresence" in event.message.content.lower()):
+				presence_parsed = event.message.content.split(",")
+				if (presence_parsed[1].lower()=="clear"):
+					await bot.change_presence(status="ONLINE", activity=None)
+				elif (presence_parsed[1].lower()=="playing"):
+					await bot.change_presence(status="ONLINE", activity=Activity(type=0, name=presence_parsed[2]))
+				elif (presence_parsed[1].lower()=="streaming"):
+					await bot.change_presence(status="ONLINE", activity=Activity(type=1, name=presence_parsed[2]))
+				elif (presence_parsed[1].lower()=="listening"):
+					await bot.change_presence(status="ONLINE", activity=Activity(type=2, name=presence_parsed[2]))
+				elif (presence_parsed[1].lower()=="watching"):
+					await bot.change_presence(status="ONLINE", activity=Activity(type=3, name=presence_parsed[2]))
+			else:
+				await channel.send(event.message.content)
 			
 		#only log if DM
 		cls_log.info("DM - " + str(event.message.author) + ": " + event.message.content)
