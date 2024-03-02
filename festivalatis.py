@@ -77,7 +77,7 @@ async def artistlistmaintain():
 
 async def scheduleparser():
 	#parse schedule data
-	for x in range(4,numstages+4):
+	for x in range(3,numstages+3):
 		#separate stage name and set data
 		stagedata = schedule_parsed[x].split("^")
 		sets_parsed = stagedata[1].split(",")
